@@ -1,5 +1,16 @@
 {
   "rewrites": [
+    { "source": "/sostituzioni", "destination": "/sostituzioni.html" },
+    { "source": "/pnrr-classroom", "destination": "/pnrr-classroom.html" },
+    { "source": "/pnrr-labs", "destination": "/pnrr-labs.html" },
+    { "source": "/playlist", "destination": "/playlist.html" },
+    { "source": "/organigramma", "destination": "/organigramma.html" },
+    { "source": "/dm65", "destination": "/dm65.html" },
+    { "source": "/dm66", "destination": "/dm66.html" },
+    { "source": "/dm19", "destination": "/dm19.html" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin-login", "destination": "/admin-login.html" },
+    { "source": "/calendario-impegni", "destination": "/calendario-impegni.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 } 
