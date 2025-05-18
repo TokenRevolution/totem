@@ -1,68 +1,15 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/",
-      "destination": "/index.html"
-    },
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
     {
-      "source": "/admin",
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/admin-login",
-      "destination": "/admin-login.html"
-    },
-    {
-      "source": "/sostituzioni",
-      "destination": "/sostituzioni.html"
-    },
-    {
-      "source": "/playlist",
-      "destination": "/playlist.html"
-    },
-    {
-      "source": "/dm65",
-      "destination": "/dm65.html"
-    },
-    {
-      "source": "/dm66",
-      "destination": "/dm66.html"
-    },
-    {
-      "source": "/dm19",
-      "destination": "/dm19.html"
-    },
-    {
-      "source": "/pnrr-labs",
-      "destination": "/pnrr-labs.html"
-    },
-    {
-      "source": "/pnrr-classroom",
-      "destination": "/pnrr-classroom.html"
-    },
-    {
-      "source": "/calendario-impegni",
-      "destination": "/calendario-impegni.html"
-    },
-    {
-      "source": "/organigramma",
-      "destination": "/organigramma.html"
-    },
-    {
-      "source": "/css/:path*",
-      "destination": "/css/:path*"
-    },
-    {
-      "source": "/js/:path*",
-      "destination": "/js/:path*"
-    },
-    {
-      "source": "/images/:path*",
-      "destination": "/images/:path*"
-    },
-    {
-      "source": "/videos/:path*",
-      "destination": "/videos/:path*"
+      "src": "/(.*)",
+      "dest": "/public/$1"
     }
   ],
   "cleanUrls": true
