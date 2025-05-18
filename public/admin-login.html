@@ -6,6 +6,21 @@
     <title>Admin Login - Totem</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <!-- Firebase Auth -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <!-- Firebase Database -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <!-- Firebase Analytics -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+    <script>
+        // Test script in head
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded');
+            alert('Page loaded - check console (F12)');
+        });
+    </script>
 </head>
 <body>
     <div class="container glass-effect">
@@ -52,11 +67,36 @@
         </footer>
     </div>
 
+    <!-- Test script before module -->
+    <script>
+        console.log('Before module script');
+        alert('Before module script - check console (F12)');
+    </script>
+
     <script type="module">
-        import { loginAdmin, onAuthChange } from './firebase-admin.js';
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
+            authDomain: "gestione-totem.firebaseapp.com",
+            databaseURL: "https://gestione-totem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gestione-totem",
+            storageBucket: "gestione-totem.firebasestorage.app",
+            messagingSenderId: "940742220177",
+            appId: "1:940742220177:web:ec36d4958f6f02a948a230",
+            measurementId: "G-Y4WT9HRDSY"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const analytics = firebase.analytics();
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        console.log('Firebase initialized');
 
         // Check if user is already logged in
-        onAuthChange((user) => {
+        auth.onAuthStateChanged((user) => {
+            console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
             if (user) {
                 window.location.href = 'admin.html';
             }
@@ -71,6 +111,8 @@
             const errorMessage = document.getElementById('errorMessage');
             const submitButton = event.target.querySelector('button[type="submit"]');
             
+            console.log('Attempting login with:', { email });
+            
             try {
                 // Disable submit button and show loading state
                 submitButton.disabled = true;
@@ -78,17 +120,43 @@
                 errorMessage.style.display = 'none';
                 
                 // Attempt login
-                await loginAdmin(email, password);
+                console.log('Calling login...');
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                console.log('Login successful:', userCredential.user);
                 
                 // Redirect to admin panel on success
                 window.location.href = 'admin.html';
             } catch (error) {
+                // Log detailed error information
+                console.error('Login error details:', {
+                    code: error.code,
+                    message: error.message,
+                    fullError: error
+                });
+                
                 // Show error message
-                errorMessage.textContent = 'Errore di accesso: ' + 
-                    (error.code === 'auth/invalid-credential' ? 'Credenziali non valide' :
-                     error.code === 'auth/user-not-found' ? 'Utente non trovato' :
-                     error.code === 'auth/wrong-password' ? 'Password non valida' :
-                     'Si è verificato un errore durante l\'accesso');
+                let errorText = 'Errore di accesso: ';
+                switch(error.code) {
+                    case 'auth/invalid-credential':
+                        errorText += 'Credenziali non valide';
+                        break;
+                    case 'auth/user-not-found':
+                        errorText += 'Utente non trovato';
+                        break;
+                    case 'auth/wrong-password':
+                        errorText += 'Password non valida';
+                        break;
+                    case 'auth/invalid-email':
+                        errorText += 'Email non valida';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorText += 'Troppi tentativi di accesso. Riprova più tardi';
+                        break;
+                    default:
+                        errorText += `Errore: ${error.code || error.message}`;
+                }
+                
+                errorMessage.textContent = errorText;
                 errorMessage.style.display = 'block';
                 
                 // Reset submit button

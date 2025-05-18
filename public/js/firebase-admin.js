@@ -33,6 +33,19 @@ export async function loginAdmin(email, password) {
     }
 }
 
+// Verifica se l'utente è loggato
+export function isLoggedIn() {
+    return localStorage.getItem('isLoggedIn') === 'true';
+}
+
+// Logout
+export function logout() {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('username');
+    window.location.href = 'admin-login.html';
+}
+
+// Authentication functions
 export function onAuthChange(callback) {
     return onAuthStateChanged(auth, callback);
 }

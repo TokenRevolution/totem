@@ -60,7 +60,7 @@
     <script type="module">
         import { initializeApp } from "firebase/app";
         import { getDatabase, ref, query, orderByChild, onValue } from "firebase/database";
-        import { firebaseConfig } from './firebase-admin.js';
+        import { firebaseConfig } from './js/firebase-admin.js';
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -153,19 +153,26 @@
             
             onValue(eventsQuery, (snapshot) => {
                 console.log('=== Snapshot received ===');
+                console.log('Snapshot exists:', snapshot.exists());
+                console.log('Snapshot value:', snapshot.val());
+                
                 const eventsList = document.getElementById('eventsList');
                 eventsList.innerHTML = '';
 
                 const events = [];
                 const weekDates = getWeekDates(week || getCurrentWeek());
+                console.log('Week dates:', weekDates);
                 
                 snapshot.forEach((childSnapshot) => {
                     const event = childSnapshot.val();
+                    console.log('Processing event:', event);
                     if ((location === 'all' || event.location === location) &&
                         weekDates.includes(event.date)) {
-                        events.push(event);
+                        events.push({ ...event, id: childSnapshot.key });
                     }
                 });
+
+                console.log('Filtered events:', events);
 
                 if (events.length === 0) {
                     eventsList.innerHTML = `
@@ -241,14 +248,25 @@
 
                 weekContainer.appendChild(eventsGrid);
                 eventsList.appendChild(weekContainer);
+            }, (error) => {
+                console.error('Error loading events:', error);
+                const eventsList = document.getElementById('eventsList');
+                eventsList.innerHTML = `
+                    <div class="no-data error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Errore nel caricamento degli eventi</p>
+                    </div>
+                `;
             });
         };
 
         // Initialize filters and load events when the page loads
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM Content Loaded');
             const weekFilter = document.getElementById('weekFilter');
             if (weekFilter) {
                 weekFilter.value = getCurrentWeek();
+                console.log('Initial week:', weekFilter.value);
                 loadEvents('all', weekFilter.value);
             }
         });
