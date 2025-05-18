@@ -2,13 +2,25 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/src/pages/index.html"
     }
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "src": "/src/pages/(.*)",
+      "dest": "/src/pages/$1"
+    },
+    {
+      "src": "/src/css/(.*)",
+      "dest": "/src/css/$1"
+    },
+    {
+      "src": "/src/js/(.*)",
+      "dest": "/src/js/$1"
+    },
+    {
+      "src": "/public/(.*)",
+      "dest": "/public/$1"
     }
   ]
 } 

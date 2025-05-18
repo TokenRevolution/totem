@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sostituzioni - Totem</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container glass-effect">
+        <div class="header">
+            <a href="index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                <span>Torna alla Home</span>
+            </a>
+            <div class="logo-container">
+                <img src="https://www.istitutoboselli.edu.it/wp-content/uploads/2024/04/logo-boselli-ritaglio-1.png" alt="Logo IIS P.Boselli" class="school-logo">
+            </div>
+            <i class="fas fa-exchange-alt music-icon"></i>
+            <h1>Sostituzioni</h1>
+            <div class="subtitle">Gestione delle sostituzioni</div>
+        </div>
+        
+        <!-- Content Section -->
+        <div class="content glass-effect">
+            <div class="substitutions-container">
+                <div class="substitutions-header">
+                    <h2>Sostituzioni del Giorno</h2>
+                    <div class="filters">
+                        <div class="location-filter">
+                            <label for="locationFilter">Sede:</label>
+                            <select id="locationFilter" onchange="filterSubstitutions()">
+                                <option value="TO1">TO1</option>
+                                <option value="TO2">TO2</option>
+                                <option value="TO3">TO3</option>
+                            </select>
+                        </div>
+                        <div class="date-filter">
+                            <label for="dateFilter">Data:</label>
+                            <input type="date" id="dateFilter" onchange="filterSubstitutions()">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="substitutionsList" class="substitutions-list">
+                    <div class="table-container">
+                        <table class="substitutions-table">
+                            <thead>
+                                <tr>
+                                    <th>Orario</th>
+                                    <!-- Class columns will be added dynamically -->
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="noSubstitutions" class="no-data" style="display: none;">
+                    <i class="fas fa-calendar-check"></i>
+                    <p>Nessuna sostituzione programmata per questa data</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer glass-effect">
+            <p>© 2024 Totem Navigation | IIS P.Boselli Torino | Tutti i diritti riservati</p>
+            <p class="footer-sub">Progetto sviluppato presso l'Istituto di Istruzione Superiore Paolo Boselli di Torino</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { 
+            getDatabase, 
+            ref, 
+            onValue, 
+            query, 
+            orderByChild 
+        } from "firebase/database";
+        import { initializeApp } from "firebase/app";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
+            authDomain: "gestione-totem.firebaseapp.com",
+            databaseURL: "https://gestione-totem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gestione-totem",
+            storageBucket: "gestione-totem.firebasestorage.app",
+            messagingSenderId: "940742220177",
+            appId: "1:940742220177:web:ec36d4958f6f02a948a230",
+            measurementId: "G-Y4WT9HRDSY"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Set today's date as default in the date filter
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dateFilter').value = today;
+
+        // Function to format time slot
+        function getTimeSlotText(slot) {
+            const timeSlots = {
+                1: "8:00-9:00",
+                2: "9:00-10:00",
+                3: "10:00-11:00",
+                4: "11:00-12:00",
+                5: "12:00-13:00",
+                6: "13:00-14:00"
+            };
+            return timeSlots[slot] || `Ora ${slot}`;
+        }
+
+        // Function to filter substitutions by date and location
+        window.filterSubstitutions = () => {
+            const selectedDate = document.getElementById('dateFilter').value;
+            const selectedLocation = document.getElementById('locationFilter').value;
+            loadSubstitutions(selectedDate, selectedLocation);
+        };
+
+        // Function to load and display substitutions
+        function loadSubstitutions(date, location) {
+            const substitutionsRef = ref(db, 'substitutions');
+            const substitutionsQuery = query(substitutionsRef, orderByChild('date'));
+
+            onValue(substitutionsQuery, (snapshot) => {
+                const substitutionsList = document.getElementById('substitutionsList');
+                const noSubstitutions = document.getElementById('noSubstitutions');
+                const table = substitutionsList.querySelector('table');
+                const thead = table.querySelector('thead tr');
+                const tbody = table.querySelector('tbody');
+                
+                // Clear existing content except the time column
+                while (thead.children.length > 1) {
+                    thead.removeChild(thead.lastChild);
+                }
+                tbody.innerHTML = '';
+
+                const substitutions = [];
+                const classes = new Set();
+                snapshot.forEach((childSnapshot) => {
+                    const substitution = childSnapshot.val();
+                    if (substitution.date === date && substitution.location === location) {
+                        substitutions.push(substitution);
+                        classes.add(substitution.class);
+                    }
+                });
+
+                if (substitutions.length === 0) {
+                    substitutionsList.style.display = 'none';
+                    noSubstitutions.style.display = 'block';
+                    noSubstitutions.querySelector('p').textContent = 
+                        `Nessuna sostituzione programmata per la sede ${location} in data ${new Date(date).toLocaleDateString('it-IT')}`;
+                    return;
+                }
+
+                substitutionsList.style.display = 'block';
+                noSubstitutions.style.display = 'none';
+
+                // Sort classes alphabetically
+                const sortedClasses = Array.from(classes).sort();
+
+                // Add class columns to header
+                sortedClasses.forEach(className => {
+                    const th = document.createElement('th');
+                    th.textContent = className;
+                    thead.appendChild(th);
+                });
+
+                // Create a map of substitutions by time slot and class
+                const substitutionsMap = new Map();
+                for (let i = 1; i <= 6; i++) {
+                    substitutionsMap.set(i, new Map());
+                    sortedClasses.forEach(className => {
+                        substitutionsMap.get(i).set(className, null);
+                    });
+                }
+
+                // Fill the map with substitutions
+                substitutions.forEach(sub => {
+                    substitutionsMap.get(parseInt(sub.timeSlot)).set(sub.class, sub);
+                });
+
+                // Create rows for each time slot
+                for (let timeSlot = 1; timeSlot <= 6; timeSlot++) {
+                    const row = document.createElement('tr');
+                    
+                    // Add time slot cell
+                    const timeCell = document.createElement('td');
+                    timeCell.className = 'time-slot';
+                    timeCell.innerHTML = `
+                        <i class="fas fa-clock"></i>
+                        ${getTimeSlotText(timeSlot)}
+                    `;
+                    row.appendChild(timeCell);
+
+                    // Add cells for each class
+                    sortedClasses.forEach(className => {
+                        const cell = document.createElement('td');
+                        const substitution = substitutionsMap.get(timeSlot).get(className);
+                        
+                        if (substitution) {
+                            cell.className = 'has-substitution';
+                            cell.innerHTML = `
+                                <div class="substitution-info">
+                                    <div class="subject">
+                                        <i class="fas fa-book"></i>
+                                        ${substitution.subject}
+                                    </div>
+                                    <div class="teachers">
+                                        <span class="replaced">
+                                            <i class="fas fa-user-minus"></i>
+                                            ${substitution.replacedTeacher}
+                                        </span>
+                                        <span class="substitute">
+                                            <i class="fas fa-user-plus"></i>
+                                            ${substitution.substituteTeacher}
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            cell.className = 'no-substitution';
+                            cell.innerHTML = '<span class="empty-slot">-</span>';
+                        }
+                        row.appendChild(cell);
+                    });
+
+                    tbody.appendChild(row);
+                }
+            });
+        }
+
+        // Initial load of substitutions with default location (TO1)
+        document.getElementById('dateFilter').value = today;
+        loadSubstitutions(today, 'TO1');
+    </script>
+
+    <style>
+        /* Base styles */
+        .substitutions-container {
+            padding: 1rem;
+            height: calc(100vh - 200px); /* Adjust based on header and footer height */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .substitutions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .location-filter,
+        .date-filter {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .location-filter select,
+        .date-filter input {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            min-width: 100px;
+        }
+
+        .location-filter select {
+            cursor: pointer;
+        }
+
+        .location-filter select option {
+            background: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .table-container {
+            flex: 1;
+            overflow: auto;
+            margin-top: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .substitutions-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .substitutions-table th,
+        .substitutions-table td {
+            padding: 0.75rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            vertical-align: top;
+            position: relative;
+        }
+
+        .substitutions-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            color: var(--primary-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .substitutions-table th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .substitutions-table td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background: rgba(255, 255, 255, 0.05);
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .time-slot {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .time-slot i {
+            color: var(--primary-color);
+        }
+
+        .has-substitution {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .substitution-info {
+            text-align: left;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .subject {
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        .teachers {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .replaced i {
+            color: #ff6b6b;
+        }
+
+        .substitute i {
+            color: #51cf66;
+        }
+
+        .no-substitution {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .empty-slot {
+            font-size: 1.2rem;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-color);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .no-data i {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Media Queries for different screen sizes and orientations */
+        @media screen and (max-width: 1200px) {
+            .substitutions-table th,
+            .substitutions-table td {
+                padding: 0.6rem;
+            }
+
+            .substitution-info {
+                font-size: 0.85rem;
+                min-width: 130px;
+            }
+
+            .teachers {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media screen and (max-width: 992px) {
+            .substitutions-container {
+                height: calc(100vh - 180px);
+            }
+
+            .substitutions-table th,
+            .substitutions-table td {
+                padding: 0.5rem;
+            }
+
+            .substitution-info {
+                font-size: 0.8rem;
+                min-width: 120px;
+            }
+
+            .teachers {
+                font-size: 0.75rem;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .substitutions-container {
+                height: calc(100vh - 160px);
+                padding: 0.5rem;
+            }
+
+            .substitutions-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .filters {
+                flex-direction: column;
+                width: 100%;
+                gap: 0.5rem;
+            }
+
+            .location-filter,
+            .date-filter {
+                width: 100%;
+            }
+
+            .location-filter select,
+            .date-filter input {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .substitutions-table th,
+            .substitutions-table td {
+                padding: 0.4rem;
+                font-size: 0.8rem;
+            }
+
+            .substitution-info {
+                font-size: 0.75rem;
+                min-width: 100px;
+            }
+
+            .teachers {
+                font-size: 0.7rem;
+            }
+
+            .time-slot {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Landscape orientation specific styles */
+        @media screen and (orientation: landscape) and (max-height: 600px) {
+            .substitutions-container {
+                height: calc(100vh - 140px);
+            }
+
+            .substitutions-header {
+                margin-bottom: 0.5rem;
+            }
+
+            .substitutions-table th,
+            .substitutions-table td {
+                padding: 0.3rem;
+            }
+
+            .substitution-info {
+                font-size: 0.7rem;
+            }
+
+            .teachers {
+                font-size: 0.65rem;
+                gap: 0.15rem;
+            }
+
+            .subject {
+                margin-bottom: 0.25rem;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .substitutions-container {
+                height: auto;
+                padding: 0;
+            }
+
+            .substitutions-header {
+                display: none;
+            }
+
+            .table-container {
+                overflow: visible;
+                background: none;
+            }
+
+            .substitutions-table {
+                border: 1px solid #000;
+            }
+
+            .substitutions-table th,
+            .substitutions-table td {
+                border: 1px solid #000;
+                background: none !important;
+                color: #000;
+            }
+
+            .substitution-info {
+                color: #000;
+            }
+
+            .replaced i {
+                color: #000;
+            }
+
+            .substitute i {
+                color: #000;
+            }
+        }
+    </style>
+</body>
+</html> 
