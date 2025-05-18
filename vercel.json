@@ -1,26 +1,68 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/src/pages/index.html"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/src/pages/(.*)",
-      "dest": "/src/pages/$1"
+      "source": "/",
+      "destination": "/index.html"
     },
     {
-      "src": "/src/css/(.*)",
-      "dest": "/src/css/$1"
+      "source": "/admin",
+      "destination": "/admin.html"
     },
     {
-      "src": "/src/js/(.*)",
-      "dest": "/src/js/$1"
+      "source": "/admin-login",
+      "destination": "/admin-login.html"
     },
     {
-      "src": "/public/(.*)",
-      "dest": "/public/$1"
+      "source": "/sostituzioni",
+      "destination": "/sostituzioni.html"
+    },
+    {
+      "source": "/playlist",
+      "destination": "/playlist.html"
+    },
+    {
+      "source": "/dm65",
+      "destination": "/dm65.html"
+    },
+    {
+      "source": "/dm66",
+      "destination": "/dm66.html"
+    },
+    {
+      "source": "/dm19",
+      "destination": "/dm19.html"
+    },
+    {
+      "source": "/pnrr-labs",
+      "destination": "/pnrr-labs.html"
+    },
+    {
+      "source": "/pnrr-classroom",
+      "destination": "/pnrr-classroom.html"
+    },
+    {
+      "source": "/calendario-impegni",
+      "destination": "/calendario-impegni.html"
+    },
+    {
+      "source": "/organigramma",
+      "destination": "/organigramma.html"
+    },
+    {
+      "source": "/css/:path*",
+      "destination": "/css/:path*"
+    },
+    {
+      "source": "/js/:path*",
+      "destination": "/js/:path*"
+    },
+    {
+      "source": "/images/:path*",
+      "destination": "/images/:path*"
+    },
+    {
+      "source": "/videos/:path*",
+      "destination": "/videos/:path*"
     }
   ],
   "cleanUrls": true
