@@ -2,21 +2,22 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
-  "redirects": [
-    { "source": "/sostituzioni", "destination": "/sostituzioni.html", "permanent": true },
-    { "source": "/pnrr-classroom", "destination": "/pnrr-classroom.html", "permanent": true },
-    { "source": "/pnrr-labs", "destination": "/pnrr-labs.html", "permanent": true },
-    { "source": "/playlist", "destination": "/playlist.html", "permanent": true },
-    { "source": "/organigramma", "destination": "/organigramma.html", "permanent": true },
-    { "source": "/dm65", "destination": "/dm65.html", "permanent": true },
-    { "source": "/dm66", "destination": "/dm66.html", "permanent": true },
-    { "source": "/dm19", "destination": "/dm19.html", "permanent": true },
-    { "source": "/admin", "destination": "/admin.html", "permanent": true },
-    { "source": "/admin-login", "destination": "/admin-login.html", "permanent": true },
-    { "source": "/calendario-impegni", "destination": "/calendario-impegni.html", "permanent": true }
-  ],
   "routes": [
+    { "src": "/admin", "dest": "/admin.html" },
+    { "src": "/admin-login", "dest": "/admin-login.html" },
+    { "src": "/playlist", "dest": "/playlist.html" },
+    { "src": "/dm65", "dest": "/dm65.html" },
+    { "src": "/dm66", "dest": "/dm66.html" },
+    { "src": "/dm19", "dest": "/dm19.html" },
+    { "src": "/pnrr-labs", "dest": "/pnrr-labs.html" },
+    { "src": "/pnrr-classroom", "dest": "/pnrr-classroom.html" },
+    { "src": "/sostituzioni", "dest": "/sostituzioni.html" },
+    { "src": "/calendario-impegni", "dest": "/calendario-impegni.html" },
+    { "src": "/organigramma", "dest": "/organigramma.html" },
+    { "src": "/styles.css", "dest": "/styles.css" },
+    { "src": "/script.js", "dest": "/script.js" },
+    { "src": "/firebase-admin.js", "dest": "/firebase-admin.js" },
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/(.*)", "status": 404, "dest": "/index.html" }
   ]
 } 
