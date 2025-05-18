@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM19 - Totem</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container glass-effect">
+        <div class="header">
+            <a href="index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                <span>Torna alla Home</span>
+            </a>
+            <a href="admin.html" class="admin-button">
+                <i class="fas fa-cog"></i>
+                <span>Admin Panel</span>
+            </a>
+            <div class="logo-container">
+                <img src="https://www.istitutoboselli.edu.it/wp-content/uploads/2024/04/logo-boselli-ritaglio-1.png" alt="Logo IIS P.Boselli" class="school-logo">
+            </div>
+            <i class="fas fa-desktop music-icon"></i>
+            <h1>DM19</h1>
+            <div class="subtitle">Laboratorio DM19</div>
+        </div>
+        
+        <!-- Carousel Section -->
+        <div class="carousel-container glass-effect">
+            <div class="carousel">
+                <div class="carousel-item active">
+                    <img src="images/dm19/dm19-1.jpg" alt="DM19 - Immagine 1">
+                </div>
+                <div class="carousel-item">
+                    <img src="images/dm19/dm19-2.jpg" alt="DM19 - Immagine 2">
+                </div>
+                <div class="carousel-item">
+                    <video src="videos/dm19/dm19-video.mp4" muted loop></video>
+                </div>
+            </div>
+            
+            <div class="carousel-controls">
+                <div class="carousel-dot active" data-index="0"></div>
+                <div class="carousel-dot" data-index="1"></div>
+                <div class="carousel-dot" data-index="2"></div>
+            </div>
+            
+            <button class="carousel-arrow carousel-prev">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-arrow carousel-next">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- Project Description Section -->
+        <div class="project-description glass-effect">
+            <h2>Laboratorio DM19</h2>
+            <p>
+                Il laboratorio DM19 è uno spazio innovativo dedicato alla formazione tecnologica avanzata. 
+                Questo ambiente è stato progettato per fornire agli studenti gli strumenti e le competenze 
+                necessarie per affrontare le sfide del mondo digitale contemporaneo.
+            </p>
+            
+            <h3>Caratteristiche principali:</h3>
+            <ul>
+                <li>Workstation di ultima generazione</li>
+                <li>Software professionali per lo sviluppo</li>
+                <li>Ambiente di apprendimento interattivo</li>
+                <li>Spazi per la collaborazione e il team building</li>
+                <li>Sistema di rete avanzato e sicuro</li>
+            </ul>
+
+            <h3>Attività svolte:</h3>
+            <ul>
+                <li>Sviluppo applicazioni e software</li>
+                <li>Progettazione e implementazione di sistemi</li>
+                <li>Analisi e gestione dei dati</li>
+                <li>Cybersecurity e protezione dei sistemi</li>
+                <li>Progetti di innovazione digitale</li>
+            </ul>
+        </div>
+
+        <footer class="footer glass-effect">
+            <p>© 2024 Totem Navigation | IIS P.Boselli Torino | Tutti i diritti riservati</p>
+            <p class="footer-sub">Progetto sviluppato presso l'Istituto di Istruzione Superiore Paolo Boselli di Torino</p>
+        </footer>
+    </div>
+
+    <script>
+        // Carousel functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const carousel = document.querySelector('.carousel');
+            const items = carousel.querySelectorAll('.carousel-item');
+            const dots = document.querySelectorAll('.carousel-dot');
+            const prevBtn = document.querySelector('.carousel-prev');
+            const nextBtn = document.querySelector('.carousel-next');
+            let currentIndex = 0;
+
+            function showSlide(index) {
+                items.forEach(item => item.classList.remove('active'));
+                dots.forEach(dot => dot.classList.remove('active'));
+                
+                items[index].classList.add('active');
+                dots[index].classList.add('active');
+                currentIndex = index;
+            }
+
+            function nextSlide() {
+                let nextIndex = currentIndex + 1;
+                if (nextIndex >= items.length) nextIndex = 0;
+                showSlide(nextIndex);
+            }
+
+            function prevSlide() {
+                let prevIndex = currentIndex - 1;
+                if (prevIndex < 0) prevIndex = items.length - 1;
+                showSlide(prevIndex);
+            }
+
+            // Event listeners
+            dots.forEach((dot, index) => {
+                dot.addEventListener('click', () => showSlide(index));
+            });
+
+            prevBtn.addEventListener('click', prevSlide);
+            nextBtn.addEventListener('click', nextSlide);
+
+            // Auto-play
+            setInterval(nextSlide, 5000);
+
+            // Video handling
+            items.forEach(item => {
+                const video = item.querySelector('video');
+                if (video) {
+                    item.addEventListener('mouseenter', () => video.play());
+                    item.addEventListener('mouseleave', () => video.pause());
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

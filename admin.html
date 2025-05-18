@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Totem</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container glass-effect">
+        <div class="header">
+            <a href="index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                <span>Torna alla Home</span>
+            </a>
+            <div class="logo-container">
+                <img src="https://www.istitutoboselli.edu.it/wp-content/uploads/2024/04/logo-boselli-ritaglio-1.png" alt="Logo IIS P.Boselli" class="school-logo">
+            </div>
+            <div class="admin-header-controls">
+                <span id="adminUser" class="admin-user"></span>
+                <button onclick="handleLogout()" class="admin-button-small">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+            <i class="fas fa-cog music-icon"></i>
+            <h1>Admin Panel</h1>
+            <div class="subtitle">Gestione Sistema Totem</div>
+        </div>
+
+        <div id="adminContent" class="admin-panel" style="display: none;">
+            <!-- Calendar Section -->
+            <div class="admin-section glass-effect">
+                <h2><i class="fas fa-calendar-alt"></i> Gestione Calendario</h2>
+                <div class="admin-controls">
+                    <div class="filters">
+                        <div class="location-filter">
+                            <label for="calendarLocationFilter">Filtra per Sede:</label>
+                            <select id="calendarLocationFilter" onchange="filterCalendarEvents()">
+                                <option value="all">Tutte le Sedi</option>
+                                <option value="TO1">TO1</option>
+                                <option value="TO2">TO2</option>
+                                <option value="TO3">TO3</option>
+                            </select>
+                        </div>
+                        <div class="date-filter">
+                            <label for="calendarDateFilter">Filtra per Data:</label>
+                            <input type="date" id="calendarDateFilter" onchange="filterCalendarEvents()">
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="addCalendarEvent()" class="admin-button-small">
+                            <i class="fas fa-plus"></i> Nuovo Evento
+                        </button>
+                    </div>
+                </div>
+                <div id="calendarEventsList" class="substitutions-list">
+                    <!-- Calendar events will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Substitutions Section -->
+            <div class="admin-section glass-effect">
+                <h2><i class="fas fa-exchange-alt"></i> Gestione Sostituzioni</h2>
+                <div class="admin-controls">
+                    <div class="filters">
+                        <div class="location-filter">
+                            <label for="adminLocationFilter">Filtra per Sede:</label>
+                            <select id="adminLocationFilter" onchange="filterAdminSubstitutions()">
+                                <option value="all">Tutte le Sedi</option>
+                                <option value="TO1">TO1</option>
+                                <option value="TO2">TO2</option>
+                                <option value="TO3">TO3</option>
+                            </select>
+                        </div>
+                        <div class="date-filter">
+                            <label for="adminDateFilter">Filtra per Data:</label>
+                            <input type="date" id="adminDateFilter" onchange="filterAdminSubstitutions()">
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="addSubstitution()" class="admin-button-small">
+                            <i class="fas fa-plus"></i> Nuova Sostituzione
+                        </button>
+                        <button onclick="exportSubstitutions()" class="admin-button-small">
+                            <i class="fas fa-download"></i> Esporta Sostituzioni
+                        </button>
+                    </div>
+                </div>
+                <div id="substitutionsList" class="substitutions-list">
+                    <!-- Substitutions will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Organizational Structure Section -->
+            <div class="admin-section glass-effect">
+                <h2><i class="fas fa-sitemap"></i> Gestione Organigramma</h2>
+                <div class="admin-controls">
+                    <button onclick="editOrgStructure()" class="admin-button-small">
+                        <i class="fas fa-edit"></i> Modifica Struttura
+                    </button>
+                    <button onclick="updateOrgStructure()" class="admin-button-small">
+                        <i class="fas fa-save"></i> Aggiorna Struttura
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Substitution Modal -->
+        <div id="substitutionModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Gestione Sostituzione</h2>
+                    <button onclick="closeSubstitutionModal()" class="close-button">&times;</button>
+                </div>
+                <form id="substitutionForm" onsubmit="handleSubstitutionSubmit(event)">
+                    <input type="hidden" id="substitutionId">
+                    <div class="form-group">
+                        <label for="substitutionDate">Data:</label>
+                        <input type="date" id="substitutionDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionLocation">Sede:</label>
+                        <select id="substitutionLocation" required>
+                            <option value="TO1">TO1</option>
+                            <option value="TO2">TO2</option>
+                            <option value="TO3">TO3</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionTimeSlot">Orario:</label>
+                        <select id="substitutionTimeSlot" required>
+                            <option value="1">1° ora (8:00-9:00)</option>
+                            <option value="2">2° ora (9:00-10:00)</option>
+                            <option value="3">3° ora (10:00-11:00)</option>
+                            <option value="4">4° ora (11:00-12:00)</option>
+                            <option value="5">5° ora (12:00-13:00)</option>
+                            <option value="6">6° ora (13:00-14:00)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionClass">Classe:</label>
+                        <input type="text" id="substitutionClass" required placeholder="es. 1A">
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionSubject">Materia:</label>
+                        <input type="text" id="substitutionSubject" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="replacedTeacher">Docente Sostituito:</label>
+                        <input type="text" id="replacedTeacher" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="substituteTeacher">Docente Sostituto:</label>
+                        <input type="text" id="substituteTeacher" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="save-button">Salva</button>
+                        <button type="button" onclick="closeSubstitutionModal()" class="cancel-button">Annulla</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Calendar Event Modal -->
+        <div id="calendarEventModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Gestione Evento</h2>
+                    <button onclick="closeCalendarEventModal()" class="close-button">&times;</button>
+                </div>
+                <form id="calendarEventForm" onsubmit="handleCalendarEventSubmit(event)">
+                    <input type="hidden" id="eventId">
+                    <div class="form-group">
+                        <label for="eventDate">Data:</label>
+                        <input type="date" id="eventDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventLocation">Sede:</label>
+                        <select id="eventLocation" required>
+                            <option value="all">Tutte le Sedi</option>
+                            <option value="TO1">TO1</option>
+                            <option value="TO2">TO2</option>
+                            <option value="TO3">TO3</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventTimeSlot">Orario:</label>
+                        <select id="eventTimeSlot" required>
+                            <option value="1">1° ora (8:00-9:00)</option>
+                            <option value="2">2° ora (9:00-10:00)</option>
+                            <option value="3">3° ora (10:00-11:00)</option>
+                            <option value="4">4° ora (11:00-12:00)</option>
+                            <option value="5">5° ora (12:00-13:00)</option>
+                            <option value="6">6° ora (13:00-14:00)</option>
+                            <option value="7">7° ora (14:00-15:00)</option>
+                            <option value="8">8° ora (15:00-16:00)</option>
+                            <option value="9">9° ora (16:00-17:00)</option>
+                            <option value="10">10° ora (17:00-18:00)</option>
+                            <option value="11">11° ora (18:00-19:00)</option>
+                            <option value="12">12° ora (19:00-20:00)</option>
+                            <option value="13">13° ora (20:00-21:00)</option>
+                            <option value="14">14° ora (21:00-22:00)</option>
+                            <option value="15">15° ora (22:00-23:00)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventTitle">Titolo Evento:</label>
+                        <input type="text" id="eventTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventDescription">Descrizione:</label>
+                        <textarea id="eventDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="save-button">Salva</button>
+                        <button type="button" onclick="closeCalendarEventModal()" class="cancel-button">Annulla</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="loginPrompt" class="login-prompt glass-effect">
+            <i class="fas fa-lock"></i>
+            <h2>Accesso Richiesto</h2>
+            <p>Effettua l'accesso per gestire il sistema totem</p>
+            <a href="admin-login.html" class="btn">
+                <i class="fas fa-sign-in-alt"></i>
+                Accedi
+            </a>
+        </div>
+
+        <footer class="footer glass-effect">
+            <p>© 2024 Totem Navigation | IIS P.Boselli Torino | Tutti i diritti riservati</p>
+            <p class="footer-sub">Pannello di Amministrazione</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { 
+            onAuthChange,
+            exportCalendarData,
+            exportSubstitutionsData,
+            updateSubstitution,
+            deleteSubstitution,
+            updateOrgStructure,
+            getOrgStructure
+        } from './firebase-admin.js';
+        
+        import { 
+            getDatabase, 
+            ref, 
+            push, 
+            update, 
+            get, 
+            query, 
+            orderByChild, 
+            onValue,
+            remove
+        } from "firebase/database";
+        import { getAuth, signOut } from "firebase/auth";
+
+        // Initialize Firebase services
+        const db = getDatabase();
+        const auth = getAuth();
+
+        // Utility function for time slots
+        function getTimeSlotText(slot) {
+            const timeSlots = {
+                1: "1° ora (8:00-9:00)",
+                2: "2° ora (9:00-10:00)",
+                3: "3° ora (10:00-11:00)",
+                4: "4° ora (11:00-12:00)",
+                5: "5° ora (12:00-13:00)",
+                6: "6° ora (13:00-14:00)",
+                7: "7° ora (14:00-15:00)",
+                8: "8° ora (15:00-16:00)",
+                9: "9° ora (16:00-17:00)",
+                10: "10° ora (17:00-18:00)",
+                11: "11° ora (18:00-19:00)",
+                12: "12° ora (19:00-20:00)",
+                13: "13° ora (20:00-21:00)",
+                14: "14° ora (21:00-22:00)",
+                15: "15° ora (22:00-23:00)"
+            };
+            return timeSlots[slot] || `Ora ${slot}`;
+        }
+
+        // Check authentication state
+        onAuthChange((user) => {
+            const loginPrompt = document.getElementById('loginPrompt');
+            const adminContent = document.getElementById('adminContent');
+            const adminUser = document.getElementById('adminUser');
+            
+            if (user) {
+                loginPrompt.style.display = 'none';
+                adminContent.style.display = 'block';
+                adminUser.textContent = `Admin: ${user.email}`;
+            } else {
+                loginPrompt.style.display = 'block';
+                adminContent.style.display = 'none';
+            }
+        });
+
+        // Handle logout
+        window.handleLogout = async () => {
+            try {
+                await auth.signOut();
+                window.location.href = 'admin-login.html';
+            } catch (error) {
+                console.error('Error logging out:', error);
+                showError('Errore durante il logout');
+            }
+        };
+
+        // Calendar functions
+        window.editCalendar = () => {
+            // Implement calendar editing interface
+            showInfo('Funzionalità in sviluppo');
+        };
+
+        window.exportCalendar = async () => {
+            try {
+                const events = await exportCalendarData();
+                downloadJSON(events, 'calendar.json');
+                showSuccess('Calendario esportato con successo');
+            } catch (error) {
+                console.error('Error exporting calendar:', error);
+                showError('Errore nell\'esportazione del calendario');
+            }
+        };
+
+        // Substitutions functions
+        window.addSubstitution = () => {
+            const modal = document.getElementById('substitutionModal');
+            const form = document.getElementById('substitutionForm');
+            const today = new Date().toISOString().split('T')[0];
+            
+            document.getElementById('substitutionId').value = '';
+            document.getElementById('substitutionDate').value = today;
+            document.getElementById('substitutionLocation').value = 'TO1';
+            document.getElementById('substitutionTimeSlot').value = '1';
+            document.getElementById('substitutionClass').value = '';
+            document.getElementById('substitutionSubject').value = '';
+            document.getElementById('replacedTeacher').value = '';
+            document.getElementById('substituteTeacher').value = '';
+            
+            modal.style.display = 'block';
+        };
+
+        window.editSubstitution = (substitutionId) => {
+            const substitutionRef = ref(db, `substitutions/${substitutionId}`);
+            get(substitutionRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const substitution = snapshot.val();
+                    const modal = document.getElementById('substitutionModal');
+                    
+                    document.getElementById('substitutionId').value = substitutionId;
+                    document.getElementById('substitutionDate').value = substitution.date;
+                    document.getElementById('substitutionLocation').value = substitution.location;
+                    document.getElementById('substitutionTimeSlot').value = substitution.timeSlot;
+                    document.getElementById('substitutionClass').value = substitution.class;
+                    document.getElementById('substitutionSubject').value = substitution.subject;
+                    document.getElementById('replacedTeacher').value = substitution.replacedTeacher;
+                    document.getElementById('substituteTeacher').value = substitution.substituteTeacher;
+                    
+                    modal.style.display = 'block';
+                }
+            });
+        };
+
+        window.closeSubstitutionModal = () => {
+            document.getElementById('substitutionModal').style.display = 'none';
+        };
+
+        window.handleSubstitutionSubmit = async (event) => {
+            event.preventDefault();
+            
+            const substitutionId = document.getElementById('substitutionId').value;
+            const substitution = {
+                date: document.getElementById('substitutionDate').value,
+                location: document.getElementById('substitutionLocation').value,
+                timeSlot: document.getElementById('substitutionTimeSlot').value,
+                class: document.getElementById('substitutionClass').value,
+                subject: document.getElementById('substitutionSubject').value,
+                replacedTeacher: document.getElementById('replacedTeacher').value,
+                substituteTeacher: document.getElementById('substituteTeacher').value,
+                updatedAt: new Date().toISOString()
+            };
+
+            try {
+                if (substitutionId) {
+                    // Update existing substitution
+                    await update(ref(db, `substitutions/${substitutionId}`), substitution);
+                } else {
+                    // Add new substitution
+                    await push(ref(db, 'substitutions'), substitution);
+                }
+                closeSubstitutionModal();
+                loadSubstitutions();
+            } catch (error) {
+                console.error('Error saving substitution:', error);
+                alert('Errore durante il salvataggio della sostituzione');
+            }
+        };
+
+        window.deleteSubstitution = async (substitutionId) => {
+            if (confirm('Sei sicuro di voler eliminare questa sostituzione?')) {
+                try {
+                    await deleteSubstitution(substitutionId);
+                    loadSubstitutions();
+                    showSuccess('Sostituzione eliminata con successo');
+                } catch (error) {
+                    console.error('Error deleting substitution:', error);
+                    showError('Errore nell\'eliminazione della sostituzione');
+                }
+            }
+        };
+
+        // Function to filter substitutions in admin panel
+        window.filterAdminSubstitutions = () => {
+            const selectedLocation = document.getElementById('adminLocationFilter').value;
+            const selectedDate = document.getElementById('adminDateFilter').value;
+            loadSubstitutions(selectedLocation, selectedDate);
+        };
+
+        // Function to load and display substitutions with filters
+        function loadSubstitutions(location = 'all', date = '') {
+            console.log('Loading substitutions with filters:', { location, date }); // Debug log
+            const substitutionsRef = ref(db, 'substitutions');
+            const substitutionsQuery = query(substitutionsRef, orderByChild('date'));
+
+            onValue(substitutionsQuery, (snapshot) => {
+                console.log('Snapshot received:', snapshot.exists()); // Debug log
+                const substitutionsList = document.getElementById('substitutionsList');
+                substitutionsList.innerHTML = '';
+
+                const substitutions = [];
+                snapshot.forEach((childSnapshot) => {
+                    const substitution = childSnapshot.val();
+                    console.log('Processing substitution:', substitution); // Debug log
+                    // Apply filters
+                    if ((location === 'all' || substitution.location === location) &&
+                        (!date || substitution.date === date)) {
+                        substitution.id = childSnapshot.key;
+                        substitutions.push(substitution);
+                    }
+                });
+
+                console.log('Filtered substitutions:', substitutions); // Debug log
+
+                if (substitutions.length === 0) {
+                    substitutionsList.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-calendar-check"></i>
+                            <p>Nessuna sostituzione trovata con i filtri selezionati</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Sort substitutions by date and time slot
+                substitutions.sort((a, b) => {
+                    if (a.date === b.date) {
+                        return parseInt(a.timeSlot) - parseInt(b.timeSlot);
+                    }
+                    return a.date.localeCompare(b.date);
+                });
+
+                // Group substitutions by date
+                const groupedSubstitutions = substitutions.reduce((groups, substitution) => {
+                    const date = substitution.date;
+                    if (!groups[date]) {
+                        groups[date] = [];
+                    }
+                    groups[date].push(substitution);
+                    return groups;
+                }, {});
+
+                // Create HTML for each date group
+                Object.entries(groupedSubstitutions).forEach(([date, dateSubstitutions]) => {
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'date-group-header';
+                    dateHeader.innerHTML = `
+                        <h3>${new Date(date).toLocaleDateString('it-IT', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        })}</h3>
+                    `;
+                    substitutionsList.appendChild(dateHeader);
+
+                    dateSubstitutions.forEach(substitution => {
+                        const substitutionElement = document.createElement('div');
+                        substitutionElement.className = 'substitution-item';
+                        substitutionElement.innerHTML = `
+                            <div class="substitution-info">
+                                <div class="substitution-header">
+                                    <span class="location">${substitution.location}</span>
+                                    <span class="time">${getTimeSlotText(substitution.timeSlot)}</span>
+                                </div>
+                                <div class="substitution-details">
+                                    <span class="class">Classe: ${substitution.class}</span>
+                                    <span class="subject">Materia: ${substitution.subject}</span>
+                                    <span class="teachers">
+                                        <span class="replaced">Sostituito: ${substitution.replacedTeacher}</span>
+                                        <span class="substitute">Sostituto: ${substitution.substituteTeacher}</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="substitution-actions">
+                                <button onclick="editSubstitution('${substitution.id}')" class="edit-button">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteSubstitution('${substitution.id}')" class="delete-button">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        substitutionsList.appendChild(substitutionElement);
+                    });
+                });
+            }, (error) => {
+                console.error('Error loading substitutions:', error);
+                const substitutionsList = document.getElementById('substitutionsList');
+                substitutionsList.innerHTML = `
+                    <div class="no-data error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Errore nel caricamento delle sostituzioni</p>
+                    </div>
+                `;
+            });
+        }
+
+        // Initialize filters and load substitutions when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            const adminDateFilter = document.getElementById('adminDateFilter');
+            if (adminDateFilter) {
+                adminDateFilter.value = today;
+                loadSubstitutions('all', today);
+            }
+        });
+
+        // Load substitutions when admin panel is shown
+        onAuthChange((user) => {
+            if (user) {
+                const today = new Date().toISOString().split('T')[0];
+                loadSubstitutions('all', today);
+            }
+        });
+
+        // Organizational structure functions
+        window.editOrgStructure = async () => {
+            try {
+                const structure = await getOrgStructure();
+                if (structure) {
+                    // Implement structure editing interface
+                    showInfo('Funzionalità in sviluppo');
+                }
+            } catch (error) {
+                console.error('Error loading org structure:', error);
+                showError('Errore nel caricamento della struttura');
+            }
+        };
+
+        window.updateOrgStructure = async () => {
+            try {
+                // Implement structure update interface
+                showInfo('Funzionalità in sviluppo');
+            } catch (error) {
+                console.error('Error updating org structure:', error);
+                showError('Errore nell\'aggiornamento della struttura');
+            }
+        };
+
+        // Utility functions
+        function downloadJSON(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function showSuccess(message) {
+            alert(message); // Replace with better UI
+        }
+
+        function showError(message) {
+            alert(message); // Replace with better UI
+        }
+
+        function showInfo(message) {
+            alert(message); // Replace with better UI
+        }
+
+        // Calendar Event Functions
+        window.addCalendarEvent = () => {
+            const modal = document.getElementById('calendarEventModal');
+            const form = document.getElementById('calendarEventForm');
+            const today = new Date().toISOString().split('T')[0];
+            
+            document.getElementById('eventId').value = '';
+            document.getElementById('eventDate').value = today;
+            document.getElementById('eventLocation').value = 'all';
+            document.getElementById('eventTimeSlot').value = '1';
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventDescription').value = '';
+            
+            modal.style.display = 'block';
+        };
+
+        window.editCalendarEvent = (eventId) => {
+            const eventRef = ref(db, `calendar/${eventId}`);
+            get(eventRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const event = snapshot.val();
+                    const modal = document.getElementById('calendarEventModal');
+                    
+                    document.getElementById('eventId').value = eventId;
+                    document.getElementById('eventDate').value = event.date;
+                    document.getElementById('eventLocation').value = event.location;
+                    document.getElementById('eventTimeSlot').value = event.timeSlot;
+                    document.getElementById('eventTitle').value = event.title;
+                    document.getElementById('eventDescription').value = event.description || '';
+                    
+                    modal.style.display = 'block';
+                }
+            });
+        };
+
+        window.closeCalendarEventModal = () => {
+            document.getElementById('calendarEventModal').style.display = 'none';
+        };
+
+        window.handleCalendarEventSubmit = async (event) => {
+            event.preventDefault();
+            
+            const eventId = document.getElementById('eventId').value;
+            const calendarEvent = {
+                date: document.getElementById('eventDate').value,
+                location: document.getElementById('eventLocation').value,
+                timeSlot: document.getElementById('eventTimeSlot').value,
+                title: document.getElementById('eventTitle').value,
+                description: document.getElementById('eventDescription').value,
+                updatedAt: new Date().toISOString()
+            };
+
+            try {
+                if (eventId) {
+                    await update(ref(db, `calendar/${eventId}`), calendarEvent);
+                } else {
+                    await push(ref(db, 'calendar'), calendarEvent);
+                }
+                closeCalendarEventModal();
+                loadCalendarEvents();
+            } catch (error) {
+                console.error('Error saving calendar event:', error);
+                alert('Errore durante il salvataggio dell\'evento');
+            }
+        };
+
+        window.deleteCalendarEvent = async (eventId) => {
+            if (confirm('Sei sicuro di voler eliminare questo evento?')) {
+                try {
+                    await remove(ref(db, `calendar/${eventId}`));
+                    loadCalendarEvents();
+                } catch (error) {
+                    console.error('Error deleting calendar event:', error);
+                    alert('Errore durante l\'eliminazione dell\'evento');
+                }
+            }
+        };
+
+        window.filterCalendarEvents = () => {
+            const selectedLocation = document.getElementById('calendarLocationFilter').value;
+            const selectedDate = document.getElementById('calendarDateFilter').value;
+            loadCalendarEvents(selectedLocation, selectedDate);
+        };
+
+        function loadCalendarEvents(location = 'all', date = '') {
+            console.log('Loading calendar events with filters:', { location, date });
+            const eventsRef = ref(db, 'calendar');
+            const eventsQuery = query(eventsRef, orderByChild('date'));
+
+            onValue(eventsQuery, (snapshot) => {
+                console.log('Calendar snapshot received:', snapshot.exists());
+                const eventsList = document.getElementById('calendarEventsList');
+                eventsList.innerHTML = '';
+
+                const events = [];
+                snapshot.forEach((childSnapshot) => {
+                    const event = childSnapshot.val();
+                    console.log('Processing event:', event);
+                    if ((location === 'all' || event.location === location) &&
+                        (!date || event.date === date)) {
+                        event.id = childSnapshot.key;
+                        events.push(event);
+                    }
+                });
+
+                console.log('Filtered events:', events);
+
+                if (events.length === 0) {
+                    eventsList.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-calendar-check"></i>
+                            <p>Nessun evento trovato con i filtri selezionati</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Sort events by date and time slot
+                events.sort((a, b) => {
+                    if (a.date === b.date) {
+                        return parseInt(a.timeSlot) - parseInt(b.timeSlot);
+                    }
+                    return a.date.localeCompare(b.date);
+                });
+
+                // Group events by date
+                const groupedEvents = events.reduce((groups, event) => {
+                    const date = event.date;
+                    if (!groups[date]) {
+                        groups[date] = [];
+                    }
+                    groups[date].push(event);
+                    return groups;
+                }, {});
+
+                // Create HTML for each date group
+                Object.entries(groupedEvents).forEach(([date, dateEvents]) => {
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'date-group-header';
+                    dateHeader.innerHTML = `
+                        <h3>${new Date(date).toLocaleDateString('it-IT', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        })}</h3>
+                    `;
+                    eventsList.appendChild(dateHeader);
+
+                    dateEvents.forEach(event => {
+                        const eventElement = document.createElement('div');
+                        eventElement.className = 'substitution-item';
+                        eventElement.innerHTML = `
+                            <div class="substitution-info">
+                                <div class="substitution-header">
+                                    <span class="location">${event.location === 'all' ? 'Tutte le Sedi' : event.location}</span>
+                                    <span class="time">${getTimeSlotText(event.timeSlot)}</span>
+                                </div>
+                                <div class="substitution-details">
+                                    <span class="title">${event.title}</span>
+                                    ${event.description ? `<span class="description">${event.description}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="substitution-actions">
+                                <button onclick="editCalendarEvent('${event.id}')" class="edit-button">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteCalendarEvent('${event.id}')" class="delete-button">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        eventsList.appendChild(eventElement);
+                    });
+                });
+            }, (error) => {
+                console.error('Error loading calendar events:', error);
+                const eventsList = document.getElementById('calendarEventsList');
+                eventsList.innerHTML = `
+                    <div class="no-data error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Errore nel caricamento degli eventi</p>
+                    </div>
+                `;
+            });
+        }
+
+        // Initialize calendar filters and load events when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            const calendarDateFilter = document.getElementById('calendarDateFilter');
+            if (calendarDateFilter) {
+                calendarDateFilter.value = today;
+                loadCalendarEvents('all', today);
+            }
+        });
+
+        // Load calendar events when admin panel is shown
+        onAuthChange((user) => {
+            if (user) {
+                const today = new Date().toISOString().split('T')[0];
+                loadCalendarEvents('all', today);
+            }
+        });
+    </script>
+
+    <style>
+        .admin-section {
+            margin: 2rem 0;
+            padding: 2rem;
+        }
+
+        .admin-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .admin-button-small {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .admin-button-small:hover {
+            background: var(--primary-color-dark);
+            transform: translateY(-2px);
+        }
+
+        .admin-button-small i {
+            font-size: 1.2rem;
+        }
+
+        .login-prompt {
+            text-align: center;
+            padding: 3rem;
+            margin: 2rem auto;
+            max-width: 400px;
+        }
+
+        .login-prompt i {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .admin-header-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-user {
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 15px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        /* Substitutions List Styles */
+        .substitutions-list {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .substitution-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .substitution-info {
+            flex: 1;
+        }
+
+        .substitution-header {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .substitution-header .location {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .substitution-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .substitution-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .edit-button,
+        .delete-button {
+            padding: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .edit-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary-color);
+        }
+
+        .delete-button {
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff6b6b;
+        }
+
+        .edit-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .delete-button:hover {
+            background: rgba(255, 107, 107, 0.2);
+        }
+
+        @media screen and (max-width: 768px) {
+            .substitution-item {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .substitution-header {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .substitution-details {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .substitution-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .location-filter,
+        .date-filter {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 200px;
+        }
+
+        .location-filter select,
+        .date-filter input {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            flex: 1;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .date-group-header {
+            margin: 1.5rem 0 0.5rem 0;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+
+        .date-group-header h3 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-color);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .no-data i {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .filters {
+                flex-direction: column;
+            }
+
+            .location-filter,
+            .date-filter {
+                width: 100%;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-buttons .admin-button-small {
+                width: 100%;
+            }
+        }
+
+        .no-data.error {
+            color: #ff6b6b;
+        }
+
+        .no-data.error i {
+            color: #ff6b6b;
+        }
+
+        .events-list {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .event-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .event-info {
+            flex: 1;
+        }
+
+        .event-header {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .event-header .location {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .event-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .event-details .title {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+
+        .event-details .description {
+            margin: 0;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: 1rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .event-item {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .event-header {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .event-actions {
+                width: 100%;
+                justify-content: flex-end;
+                margin-left: 0;
+            }
+        }
+    </style>
+</body>
+</html> 

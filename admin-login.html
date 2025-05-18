@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Totem</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container glass-effect">
+        <div class="header">
+            <a href="index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                <span>Torna alla Home</span>
+            </a>
+            <div class="logo-container">
+                <img src="https://www.istitutoboselli.edu.it/wp-content/uploads/2024/04/logo-boselli-ritaglio-1.png" alt="Logo IIS P.Boselli" class="school-logo">
+            </div>
+            <i class="fas fa-lock music-icon"></i>
+            <h1>Admin Login</h1>
+            <div class="subtitle">Accesso Pannello di Amministrazione</div>
+        </div>
+
+        <div class="login-form glass-effect">
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">
+                        <i class="fas fa-envelope"></i>
+                        Email
+                    </label>
+                    <input type="email" id="email" name="email" required placeholder="Inserisci la tua email">
+                </div>
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-key"></i>
+                        Password
+                    </label>
+                    <input type="password" id="password" name="password" required placeholder="Inserisci la tua password">
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Accedi
+                </button>
+            </form>
+        </div>
+
+        <footer class="footer glass-effect">
+            <p>© 2024 Totem Navigation | IIS P.Boselli Torino | Tutti i diritti riservati</p>
+            <p class="footer-sub">Accesso Riservato - Area Amministrativa</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { loginAdmin, onAuthChange } from './firebase-admin.js';
+
+        // Check if user is already logged in
+        onAuthChange((user) => {
+            if (user) {
+                window.location.href = 'admin.html';
+            }
+        });
+
+        // Handle login form submission
+        window.handleLogin = async (event) => {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            
+            try {
+                // Disable submit button and show loading state
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Accesso in corso...';
+                errorMessage.style.display = 'none';
+                
+                // Attempt login
+                await loginAdmin(email, password);
+                
+                // Redirect to admin panel on success
+                window.location.href = 'admin.html';
+            } catch (error) {
+                // Show error message
+                errorMessage.textContent = 'Errore di accesso: ' + 
+                    (error.code === 'auth/invalid-credential' ? 'Credenziali non valide' :
+                     error.code === 'auth/user-not-found' ? 'Utente non trovato' :
+                     error.code === 'auth/wrong-password' ? 'Password non valida' :
+                     'Si è verificato un errore durante l\'accesso');
+                errorMessage.style.display = 'block';
+                
+                // Reset submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Accedi';
+            }
+        };
+    </script>
+
+    <style>
+        .login-form {
+            max-width: 400px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .form-group label i {
+            margin-right: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .error-message {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+            text-align: center;
+        }
+
+        .btn {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn i.fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html> 
