@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   build: {
@@ -7,18 +8,18 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: 'index.html',
-        admin: 'admin.html',
-        'admin-login': 'admin-login.html',
-        sostituzioni: 'sostituzioni.html',
-        playlist: 'playlist.html',
-        dm65: 'dm65.html',
-        dm66: 'dm66.html',
-        dm19: 'dm19.html',
-        'pnrr-labs': 'pnrr-labs.html',
-        'pnrr-classroom': 'pnrr-classroom.html',
-        'calendario-impegni': 'calendario-impegni.html',
-        organigramma: 'organigramma.html'
+        main: resolve(__dirname, 'public/index.html'),
+        admin: resolve(__dirname, 'public/admin.html'),
+        'admin-login': resolve(__dirname, 'public/admin-login.html'),
+        sostituzioni: resolve(__dirname, 'public/sostituzioni.html'),
+        playlist: resolve(__dirname, 'public/playlist.html'),
+        dm65: resolve(__dirname, 'public/dm65.html'),
+        dm66: resolve(__dirname, 'public/dm66.html'),
+        dm19: resolve(__dirname, 'public/dm19.html'),
+        'pnrr-labs': resolve(__dirname, 'public/pnrr-labs.html'),
+        'pnrr-classroom': resolve(__dirname, 'public/pnrr-classroom.html'),
+        'calendario-impegni': resolve(__dirname, 'public/calendario-impegni.html'),
+        organigramma: resolve(__dirname, 'public/organigramma.html')
       }
     }
   },
