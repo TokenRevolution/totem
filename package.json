@@ -4,12 +4,12 @@
   "description": "Sistema di navigazione Totem per IIS P.Boselli",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "npx vite",
+    "build": "npx vite build",
+    "preview": "npx vite preview"
   },
   "devDependencies": {
-    "firebase": "^11.7.3",
+    "firebase": "^10.8.0",
     "vite": "^6.3.5"
   }
 }
