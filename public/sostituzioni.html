@@ -72,16 +72,12 @@
         </footer>
     </div>
 
-    <script type="module">
-        import { 
-            getDatabase, 
-            ref, 
-            onValue, 
-            query, 
-            orderByChild 
-        } from "firebase/database";
-        import { initializeApp } from "firebase/app";
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <!-- Firebase Database -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
+    <script>
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
@@ -95,8 +91,8 @@
         };
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
         // Set today's date as default in the date filter
         const today = new Date().toISOString().split('T')[0];
@@ -110,7 +106,9 @@
                 3: "10:00-11:00",
                 4: "11:00-12:00",
                 5: "12:00-13:00",
-                6: "13:00-14:00"
+                6: "13:00-14:00",
+                7: "14:00-15:00",
+                8: "15:00-16:00"
             };
             return timeSlots[slot] || `Ora ${slot}`;
         }
@@ -124,10 +122,14 @@
 
         // Function to load and display substitutions
         function loadSubstitutions(date, location) {
-            const substitutionsRef = ref(db, 'substitutions');
-            const substitutionsQuery = query(substitutionsRef, orderByChild('date'));
+            console.log('Loading substitutions for:', { date, location }); // Debug log
+            
+            const substitutionsRef = db.ref('substitutions');
+            const substitutionsQuery = substitutionsRef.orderByChild('date');
 
-            onValue(substitutionsQuery, (snapshot) => {
+            substitutionsQuery.on('value', (snapshot) => {
+                console.log('Substitutions snapshot:', snapshot.exists()); // Debug log
+                
                 const substitutionsList = document.getElementById('substitutionsList');
                 const noSubstitutions = document.getElementById('noSubstitutions');
                 const table = substitutionsList.querySelector('table');
@@ -140,53 +142,86 @@
                 }
                 tbody.innerHTML = '';
 
+                // Get the week's dates (Monday to Friday)
+                const currentDate = new Date(date);
+                const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                const monday = new Date(currentDate);
+                monday.setDate(currentDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                
+                const weekDates = [];
+                for (let i = 0; i < 5; i++) {
+                    const date = new Date(monday);
+                    date.setDate(monday.getDate() + i);
+                    weekDates.push(date.toISOString().split('T')[0]);
+                }
+
+                // Add days of the week to header
+                const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì'];
+                weekDates.forEach((date, index) => {
+                    const th = document.createElement('th');
+                    th.innerHTML = `
+                        <div class="day-header">
+                            <div class="day-name">${days[index]}</div>
+                            <div class="day-date">${formatDate(date)}</div>
+                        </div>
+                    `;
+                    thead.appendChild(th);
+                });
+
+                // Add helper function to format date
+                function formatDate(dateString) {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('it-IT', { 
+                        day: '2-digit',
+                        month: '2-digit'
+                    });
+                }
+
                 const substitutions = [];
                 const classes = new Set();
+                
                 snapshot.forEach((childSnapshot) => {
                     const substitution = childSnapshot.val();
-                    if (substitution.date === date && substitution.location === location) {
+                    console.log('Processing substitution:', substitution); // Debug log
+                    
+                    if (weekDates.includes(substitution.date) && substitution.location === location) {
                         substitutions.push(substitution);
                         classes.add(substitution.class);
                     }
                 });
 
+                console.log('Filtered substitutions:', substitutions); // Debug log
+                console.log('Classes found:', Array.from(classes)); // Debug log
+
                 if (substitutions.length === 0) {
                     substitutionsList.style.display = 'none';
                     noSubstitutions.style.display = 'block';
                     noSubstitutions.querySelector('p').textContent = 
-                        `Nessuna sostituzione programmata per la sede ${location} in data ${new Date(date).toLocaleDateString('it-IT')}`;
+                        `Nessuna sostituzione programmata per la sede ${location} in questa settimana`;
                     return;
                 }
 
                 substitutionsList.style.display = 'block';
                 noSubstitutions.style.display = 'none';
 
-                // Sort classes alphabetically
-                const sortedClasses = Array.from(classes).sort();
-
-                // Add class columns to header
-                sortedClasses.forEach(className => {
-                    const th = document.createElement('th');
-                    th.textContent = className;
-                    thead.appendChild(th);
-                });
-
-                // Create a map of substitutions by time slot and class
+                // Create a map of substitutions by time slot and date
                 const substitutionsMap = new Map();
-                for (let i = 1; i <= 6; i++) {
+                for (let i = 1; i <= 8; i++) {
                     substitutionsMap.set(i, new Map());
-                    sortedClasses.forEach(className => {
-                        substitutionsMap.get(i).set(className, null);
+                    weekDates.forEach(date => {
+                        substitutionsMap.get(i).set(date, []);
                     });
                 }
 
                 // Fill the map with substitutions
                 substitutions.forEach(sub => {
-                    substitutionsMap.get(parseInt(sub.timeSlot)).set(sub.class, sub);
+                    const timeSlot = parseInt(sub.timeSlot);
+                    const date = sub.date;
+                    substitutionsMap.get(timeSlot).get(date).push(sub);
                 });
 
                 // Create rows for each time slot
-                for (let timeSlot = 1; timeSlot <= 6; timeSlot++) {
+                for (let timeSlot = 1; timeSlot <= 8; timeSlot++) {
                     const row = document.createElement('tr');
                     
                     // Add time slot cell
@@ -198,31 +233,35 @@
                     `;
                     row.appendChild(timeCell);
 
-                    // Add cells for each class
-                    sortedClasses.forEach(className => {
+                    // Add cells for each day
+                    weekDates.forEach(date => {
                         const cell = document.createElement('td');
-                        const substitution = substitutionsMap.get(timeSlot).get(className);
+                        const daySubstitutions = substitutionsMap.get(timeSlot).get(date);
                         
-                        if (substitution) {
+                        if (daySubstitutions.length > 0) {
                             cell.className = 'has-substitution';
-                            cell.innerHTML = `
+                            cell.innerHTML = daySubstitutions.map(sub => `
                                 <div class="substitution-info">
+                                    <div class="class-info">
+                                        <i class="fas fa-chalkboard"></i>
+                                        ${sub.class}
+                                    </div>
                                     <div class="subject">
                                         <i class="fas fa-book"></i>
-                                        ${substitution.subject}
+                                        ${sub.subject}
                                     </div>
                                     <div class="teachers">
                                         <span class="replaced">
                                             <i class="fas fa-user-minus"></i>
-                                            ${substitution.replacedTeacher}
+                                            ${sub.replacedTeacher}
                                         </span>
                                         <span class="substitute">
                                             <i class="fas fa-user-plus"></i>
-                                            ${substitution.substituteTeacher}
+                                            ${sub.substituteTeacher}
                                         </span>
                                     </div>
                                 </div>
-                            `;
+                            `).join('<hr class="substitution-divider">');
                         } else {
                             cell.className = 'no-substitution';
                             cell.innerHTML = '<span class="empty-slot">-</span>';
@@ -232,21 +271,391 @@
 
                     tbody.appendChild(row);
                 }
+            }, (error) => {
+                console.error('Error loading substitutions:', error);
+                const substitutionsList = document.getElementById('substitutionsList');
+                const noSubstitutions = document.getElementById('noSubstitutions');
+                substitutionsList.style.display = 'none';
+                noSubstitutions.style.display = 'block';
+                noSubstitutions.querySelector('p').textContent = 'Errore nel caricamento delle sostituzioni';
             });
         }
 
         // Initial load of substitutions with default location (TO1)
         document.getElementById('dateFilter').value = today;
         loadSubstitutions(today, 'TO1');
+
+        // Add some CSS for the new layout
+        const style = document.createElement('style');
+        style.textContent = `
+            .substitution-info {
+                text-align: left;
+                font-size: 0.9rem;
+                padding: 0.5rem;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 4px;
+                margin: 0.25rem 0;
+            }
+
+            .class-info {
+                color: var(--primary-color);
+                font-weight: 600;
+                margin-bottom: 0.25rem;
+            }
+
+            .substitution-divider {
+                border: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                margin: 0.5rem 0;
+            }
+
+            .substitutions-table td {
+                vertical-align: top;
+                padding: 0.5rem;
+            }
+
+            .substitutions-table td.has-substitution {
+                min-width: 200px;
+            }
+
+            .substitutions-table th {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 1rem 0.5rem;
+                font-weight: 600;
+                color: var(--primary-color);
+            }
+
+            .day-header {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .day-name {
+                font-weight: 600;
+                color: var(--primary-color);
+            }
+
+            .day-date {
+                font-size: 0.85rem;
+                color: rgba(255, 255, 255, 0.7);
+            }
+
+            .substitutions-table th {
+                padding: 0.75rem 0.5rem;
+                min-width: 120px;
+            }
+
+            .substitutions-table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+                min-width: 1200px; /* Aumentato per accomodare tutte le 8 ore */
+            }
+
+            .substitutions-table th,
+            .substitutions-table td {
+                padding: clamp(0.4rem, 0.8vw, 0.6rem);
+                text-align: center;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                vertical-align: top;
+                position: relative;
+                min-width: 120px;
+            }
+
+            .substitution-info {
+                text-align: left;
+                font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+                padding: 0.4rem;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 4px;
+                margin: 0.2rem 0;
+            }
+
+            .time-slot {
+                font-size: clamp(0.8rem, 1vw, 0.9rem);
+                white-space: nowrap;
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            .has-substitution {
+                background: rgba(255, 255, 255, 0.02);
+            }
+
+            .replaced i {
+                color: #ff6b6b;
+            }
+
+            .substitute i {
+                color: #51cf66;
+            }
+
+            .no-substitution {
+                color: rgba(255, 255, 255, 0.3);
+            }
+
+            .empty-slot {
+                font-size: 1.2rem;
+            }
+
+            .no-data {
+                text-align: center;
+                padding: 2rem;
+                color: var(--text-color);
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+
+            .no-data i {
+                font-size: 2rem;
+                color: var(--primary-color);
+                margin-bottom: 0.5rem;
+            }
+
+            /* Media Queries for different screen sizes */
+            @media screen and (max-width: 1200px) {
+                .substitutions-container {
+                    height: calc(100vh - 180px);
+                    padding: 0.75rem;
+                }
+
+                .substitutions-header {
+                    margin-bottom: 0.75rem;
+                }
+
+                .filters {
+                    gap: 0.75rem;
+                }
+            }
+
+            @media screen and (max-width: 992px) {
+                .substitutions-container {
+                    height: calc(100vh - 160px);
+                    padding: 0.5rem;
+                }
+
+                .substitutions-header {
+                    flex-direction: column;
+                    align-items: stretch;
+                    gap: 0.75rem;
+                }
+
+                .filters {
+                    flex-direction: row;
+                    justify-content: space-between;
+                }
+
+                .location-filter,
+                .date-filter {
+                    flex: 1;
+                    min-width: 150px;
+                }
+            }
+
+            @media screen and (max-width: 768px) {
+                .substitutions-container {
+                    height: calc(100vh - 140px);
+                    padding: 0.5rem;
+                }
+
+                .substitutions-header {
+                    margin-bottom: 0.5rem;
+                }
+
+                .filters {
+                    flex-direction: column;
+                    width: 100%;
+                }
+
+                .location-filter,
+                .date-filter {
+                    width: 100%;
+                }
+
+                .location-filter select,
+                .date-filter input {
+                    width: 100%;
+                }
+            }
+
+            /* Landscape orientation specific styles */
+            @media screen and (orientation: landscape) and (max-height: 600px) {
+                .substitutions-container {
+                    height: calc(100vh - 120px);
+                }
+
+                .substitutions-header {
+                    margin-bottom: 0.5rem;
+                }
+
+                .filters {
+                    flex-direction: row;
+                    gap: 0.5rem;
+                }
+
+                .location-filter,
+                .date-filter {
+                    flex: 1;
+                }
+
+                .substitutions-table th,
+                .substitutions-table td {
+                    padding: 0.3rem;
+                }
+
+                .day-header {
+                    padding: 0.3rem;
+                }
+            }
+
+            /* Print styles */
+            @media print {
+                .substitutions-container {
+                    height: auto;
+                    padding: 0;
+                }
+
+                .substitutions-header {
+                    display: none;
+                }
+
+                .table-container {
+                    overflow: visible;
+                    background: none;
+                }
+
+                .substitutions-table {
+                    min-width: auto;
+                    width: 100%;
+                }
+
+                .substitutions-table th,
+                .substitutions-table td {
+                    padding: 0.5rem;
+                    border: 1px solid #000;
+        `;
+        document.head.appendChild(style);
     </script>
 
     <style>
         /* Base styles */
-        .substitutions-container {
+        .container {
+            min-height: 100vh;
             padding: 1rem;
-            height: calc(100vh - 200px); /* Adjust based on header and footer height */
             display: flex;
             flex-direction: column;
+            gap: 1rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .content.glass-effect {
+            padding: 1rem;
+            margin: 1rem;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            height: auto;
+            width: 100%;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .substitutions-container {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: auto;
+            position: relative;
+        }
+
+        .table-container {
+            margin-top: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            position: relative;
+            width: 100%;
+            overflow: auto;
+            max-height: 70vh;
+        }
+
+        .substitutions-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+        }
+
+        .substitutions-table th:first-child,
+        .substitutions-table td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background: rgba(255, 255, 255, 0.05);
+            min-width: 120px;
+        }
+
+        .substitutions-table th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .substitutions-table th:first-child {
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Stile per la scrollbar */
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Assicuriamoci che il footer rimanga sempre in fondo */
+        .footer {
+            margin-top: auto;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Gestione dello zoom */
+        @media screen and (min-resolution: 120dpi) {
+            .container {
+                padding: 0.5rem;
+            }
+
+            .content.glass-effect {
+                margin: 0.5rem;
+                padding: 0.75rem;
+            }
+
+            .substitutions-container {
+                padding: 0.75rem;
+            }
         }
 
         .substitutions-header {
@@ -256,6 +665,7 @@
             margin-bottom: 1rem;
             flex-wrap: wrap;
             gap: 1rem;
+            width: 100%;
         }
 
         .filters {
@@ -263,6 +673,8 @@
             gap: 1rem;
             flex-wrap: wrap;
             align-items: center;
+            flex: 1;
+            min-width: 200px;
         }
 
         .location-filter,
@@ -291,30 +703,6 @@
             color: var(--text-color);
         }
 
-        .table-container {
-            flex: 1;
-            overflow: auto;
-            margin-top: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            position: relative;
-        }
-
-        .substitutions-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
-
-        .substitutions-table th,
-        .substitutions-table td {
-            padding: 0.75rem;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            vertical-align: top;
-            position: relative;
-        }
-
         .substitutions-table th {
             background: rgba(255, 255, 255, 0.1);
             font-weight: 600;
@@ -322,6 +710,7 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            white-space: nowrap;
         }
 
         .substitutions-table th:first-child {
@@ -329,6 +718,7 @@
             left: 0;
             z-index: 20;
             background: rgba(255, 255, 255, 0.15);
+            min-width: 100px;
         }
 
         .substitutions-table td:first-child {
@@ -338,6 +728,7 @@
             background: rgba(255, 255, 255, 0.05);
             text-align: left;
             font-weight: 500;
+            min-width: 100px;
         }
 
         .time-slot {
@@ -357,8 +748,19 @@
 
         .substitution-info {
             text-align: left;
-            font-size: 0.9rem;
+            font-size: clamp(0.75rem, 1vw, 0.9rem);
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            margin: 0.25rem 0;
             min-width: 150px;
+        }
+
+        .class-info {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            font-size: clamp(0.8rem, 1.1vw, 0.95rem);
         }
 
         .subject {
@@ -366,13 +768,14 @@
             color: var(--primary-color);
             font-weight: 500;
             word-break: break-word;
+            font-size: clamp(0.75rem, 1vw, 0.85rem);
         }
 
         .teachers {
             display: flex;
             flex-direction: column;
             gap: 0.25rem;
-            font-size: 0.85rem;
+            font-size: clamp(0.7rem, 0.9vw, 0.85rem);
         }
 
         .replaced i {
@@ -407,44 +810,23 @@
             margin-bottom: 0.5rem;
         }
 
-        /* Media Queries for different screen sizes and orientations */
+        /* Media Queries for different screen sizes */
         @media screen and (max-width: 1200px) {
-            .substitutions-table th,
-            .substitutions-table td {
-                padding: 0.6rem;
+            .substitutions-container {
+                height: calc(100vh - 180px);
+                padding: 0.75rem;
             }
 
-            .substitution-info {
-                font-size: 0.85rem;
-                min-width: 130px;
+            .substitutions-header {
+                margin-bottom: 0.75rem;
             }
 
-            .teachers {
-                font-size: 0.8rem;
+            .filters {
+                gap: 0.75rem;
             }
         }
 
         @media screen and (max-width: 992px) {
-            .substitutions-container {
-                height: calc(100vh - 180px);
-            }
-
-            .substitutions-table th,
-            .substitutions-table td {
-                padding: 0.5rem;
-            }
-
-            .substitution-info {
-                font-size: 0.8rem;
-                min-width: 120px;
-            }
-
-            .teachers {
-                font-size: 0.75rem;
-            }
-        }
-
-        @media screen and (max-width: 768px) {
             .substitutions-container {
                 height: calc(100vh - 160px);
                 padding: 0.5rem;
@@ -453,13 +835,34 @@
             .substitutions-header {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 0.5rem;
+                gap: 0.75rem;
+            }
+
+            .filters {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            .location-filter,
+            .date-filter {
+                flex: 1;
+                min-width: 150px;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .substitutions-container {
+                height: calc(100vh - 140px);
+                padding: 0.5rem;
+            }
+
+            .substitutions-header {
+                margin-bottom: 0.5rem;
             }
 
             .filters {
                 flex-direction: column;
                 width: 100%;
-                gap: 0.5rem;
             }
 
             .location-filter,
@@ -470,37 +873,27 @@
             .location-filter select,
             .date-filter input {
                 width: 100%;
-                min-width: unset;
-            }
-
-            .substitutions-table th,
-            .substitutions-table td {
-                padding: 0.4rem;
-                font-size: 0.8rem;
-            }
-
-            .substitution-info {
-                font-size: 0.75rem;
-                min-width: 100px;
-            }
-
-            .teachers {
-                font-size: 0.7rem;
-            }
-
-            .time-slot {
-                font-size: 0.8rem;
             }
         }
 
         /* Landscape orientation specific styles */
         @media screen and (orientation: landscape) and (max-height: 600px) {
             .substitutions-container {
-                height: calc(100vh - 140px);
+                height: calc(100vh - 120px);
             }
 
             .substitutions-header {
                 margin-bottom: 0.5rem;
+            }
+
+            .filters {
+                flex-direction: row;
+                gap: 0.5rem;
+            }
+
+            .location-filter,
+            .date-filter {
+                flex: 1;
             }
 
             .substitutions-table th,
@@ -508,17 +901,8 @@
                 padding: 0.3rem;
             }
 
-            .substitution-info {
-                font-size: 0.7rem;
-            }
-
-            .teachers {
-                font-size: 0.65rem;
-                gap: 0.15rem;
-            }
-
-            .subject {
-                margin-bottom: 0.25rem;
+            .day-header {
+                padding: 0.3rem;
             }
         }
 
@@ -539,25 +923,31 @@
             }
 
             .substitutions-table {
-                border: 1px solid #000;
+                min-width: auto;
+                width: 100%;
             }
 
             .substitutions-table th,
             .substitutions-table td {
+                padding: 0.5rem;
                 border: 1px solid #000;
                 background: none !important;
                 color: #000;
+                min-width: auto;
             }
 
             .substitution-info {
+                background: none;
+                border: 1px solid #ddd;
                 color: #000;
             }
 
-            .replaced i {
-                color: #000;
+            .day-header {
+                background: none;
             }
 
-            .substitute i {
+            .day-name,
+            .day-date {
                 color: #000;
             }
         }
