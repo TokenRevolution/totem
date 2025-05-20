@@ -281,6 +281,20 @@
             if (!document.fullscreenElement) {
                 fullscreenBtn.classList.remove('fa-compress');
                 fullscreenBtn.classList.add('fa-expand');
+                // Se il totem è attivo, riattiva lo schermo intero
+                if (isTotemActive) {
+                    setTimeout(() => {
+                        const carouselContainer = document.querySelector('.carousel-container');
+                        if (carouselContainer) {
+                            carouselContainer.requestFullscreen().catch(err => {
+                                console.error(`Errore nella riattivazione della modalità schermo intero: ${err.message}`);
+                            });
+                        }
+                    }, 1000);
+                }
+            } else {
+                fullscreenBtn.classList.remove('fa-expand');
+                fullscreenBtn.classList.add('fa-compress');
             }
         });
 
@@ -428,6 +442,16 @@
             isTotemActive = true;
             createTimerOverlay();
             startTimer();
+            
+            // Attiva automaticamente lo schermo intero
+            const carouselContainer = document.querySelector('.carousel-container');
+            if (carouselContainer) {
+                setTimeout(() => {
+                    carouselContainer.requestFullscreen().catch(err => {
+                        console.error(`Errore nell'attivazione della modalità schermo intero: ${err.message}`);
+                    });
+                }, 1000); // Piccolo delay per assicurarsi che il contenuto sia caricato
+            }
         }
     }
 
@@ -689,24 +713,53 @@
         }
 
         .carousel-container:fullscreen {
-            background: white;
-            padding: 20px;
+            background: #000;
+            padding: 0;
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .carousel-container:fullscreen .carousel {
-            height: calc(100vh - 40px);
+            flex: 1;
+            height: 100%;
+            padding-bottom: 0;
+            position: relative;
         }
 
         .carousel-container:fullscreen .carousel-item {
             height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
         }
 
-        .carousel-container:fullscreen .carousel-item img {
+        .carousel-container:fullscreen .carousel-media {
+            max-width: 100%;
             max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .carousel-container:fullscreen video.carousel-media {
+            width: 100%;
+            height: 100%;
             object-fit: contain;
         }
 
         .carousel-container:fullscreen .carousel-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            padding: 2rem;
             opacity: 0;
             transition: opacity 0.3s ease;
         }
@@ -715,8 +768,26 @@
             opacity: 1;
         }
 
-        .carousel-container:fullscreen .carousel-controls button {
-            transform: scale(1.2);
+        .carousel-container:fullscreen .carousel-prev,
+        .carousel-container:fullscreen .carousel-next,
+        .carousel-container:fullscreen .fullscreen-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .carousel-container:fullscreen .carousel-prev:hover,
+        .carousel-container:fullscreen .carousel-next:hover,
+        .carousel-container:fullscreen .fullscreen-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .carousel-container:fullscreen .carousel-number {
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            font-size: 1.4em;
         }
 
         @media (max-width: 768px) {

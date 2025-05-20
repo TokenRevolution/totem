@@ -393,8 +393,35 @@
             isTotemActive = true;
             createTimerOverlay();
             startTimer();
+            
+            // Attiva automaticamente lo schermo intero per il player YouTube
+            const playerContainer = document.querySelector('.player-container');
+            if (playerContainer) {
+                setTimeout(() => {
+                    playerContainer.requestFullscreen().catch(err => {
+                        console.error(`Errore nell'attivazione della modalità schermo intero: ${err.message}`);
+                    });
+                }, 1000); // Piccolo delay per assicurarsi che il contenuto sia caricato
+            }
         }
     }
+
+    // Gestione del cambio di stato dello schermo intero
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) {
+            // Se il totem è attivo, riattiva lo schermo intero
+            if (isTotemActive) {
+                setTimeout(() => {
+                    const playerContainer = document.querySelector('.player-container');
+                    if (playerContainer) {
+                        playerContainer.requestFullscreen().catch(err => {
+                            console.error(`Errore nella riattivazione della modalità schermo intero: ${err.message}`);
+                        });
+                    }
+                }, 1000);
+            }
+        }
+    });
 
     // Check if we're in a totem loop
     window.addEventListener('load', () => {
@@ -508,6 +535,29 @@
         opacity: 1;
         visibility: visible;
         bottom: -35px;
+    }
+
+    /* Aggiungi stili per la modalità schermo intero */
+    .player-container:fullscreen {
+        background: #000;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .player-container:fullscreen #player {
+        width: 100%;
+        height: 100%;
+    }
+
+    .player-container:fullscreen .player-overlay {
+        display: none;
+    }
+
+    .player-container:fullscreen .custom-play-button {
+        display: none;
     }
     </style>
 </body>
