@@ -303,172 +303,102 @@
     </script>
 
     <script>
-    // Totem Evolution Functions
-    let totemInterval = null;
-    let currentPage = '';
-    let currentLocation = '';
-    let pageTimer = null;
-    let remainingTime = 10; // 10 seconds for testing
-    let isTotemActive = false;
+        // Rimuovo le funzioni del Totem Evolution
+        let currentSlide = 0;
+        let slides = [];
+        let slideInterval = null;
+        let isFullscreen = false;
 
-    // Funzione per salvare lo stato del totem
-    function saveTotemState(location, page) {
-        sessionStorage.setItem('totemActive', 'true');
-        sessionStorage.setItem('totemLocation', location);
-        sessionStorage.setItem('totemPage', page);
-    }
-
-    // Funzione per rimuovere lo stato del totem
-    function clearTotemState() {
-        sessionStorage.removeItem('totemActive');
-        sessionStorage.removeItem('totemLocation');
-        sessionStorage.removeItem('totemPage');
-    }
-
-    function createTimerOverlay() {
-        // Rimuovi eventuali overlay esistenti
-        const existingOverlay = document.querySelector('.timer-overlay');
-        if (existingOverlay) {
-            existingOverlay.remove();
+        // Funzione per inizializzare il carousel
+        function initializeCarousel() {
+            const carousel = document.querySelector('.carousel');
+            slides = Array.from(carousel.children);
+            
+            // Nascondi tutti i slide tranne il primo
+            slides.forEach((slide, index) => {
+                slide.style.display = index === 0 ? 'flex' : 'none';
+            });
+            
+            updateSlideNumber();
+            startSlideShow();
         }
 
-        const overlay = document.createElement('div');
-        overlay.className = 'timer-overlay';
-        overlay.innerHTML = `
-            <div class="timer-content">
-                <i class="fas fa-clock"></i>
-                <span id="timerText">10</span>
-            </div>
-            <button onclick="stopTotemLoop()" class="stop-totem-btn" title="Ferma il loop">
-                <i class="fas fa-stop-circle"></i>
-            </button>
-        `;
-        document.body.appendChild(overlay);
-        return overlay;
-    }
-
-    function stopTotemLoop() {
-        if (pageTimer) {
-            clearInterval(pageTimer);
-            pageTimer = null;
+        // Funzione per aggiornare il numero del slide corrente
+        function updateSlideNumber() {
+            const slideNumber = document.getElementById('slideNumber');
+            if (slideNumber) {
+                slideNumber.textContent = `${currentSlide + 1}/${slides.length}`;
+            }
         }
-        
-        // Rimuovi il timer overlay
-        const overlay = document.querySelector('.timer-overlay');
-        if (overlay) {
-            overlay.remove();
-        }
-        
-        // Pulisci lo stato del totem
-        clearTotemState();
-        isTotemActive = false;
-        
-        // Torna alla home
-        window.location.href = 'index.html';
-    }
 
-    function updateTimer() {
-        const seconds = remainingTime;
-        const timerText = document.getElementById('timerText');
-        if (timerText) {
-            // Aggiungi una classe per l'animazione quando mancano pochi secondi
-            if (seconds <= 3) {
-                timerText.classList.add('timer-warning');
+        // Funzione per mostrare il prossimo slide
+        function nextSlide() {
+            slides[currentSlide].style.display = 'none';
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].style.display = 'flex';
+            updateSlideNumber();
+        }
+
+        // Funzione per mostrare lo slide precedente
+        function prevSlide() {
+            slides[currentSlide].style.display = 'none';
+            currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+            slides[currentSlide].style.display = 'flex';
+            updateSlideNumber();
+        }
+
+        // Funzione per avviare lo slideshow automatico
+        function startSlideShow() {
+            if (slideInterval) {
+                clearInterval(slideInterval);
+            }
+            slideInterval = setInterval(nextSlide, 10000); // 10 secondi per slide
+        }
+
+        // Funzione per fermare lo slideshow
+        function stopSlideShow() {
+            if (slideInterval) {
+                clearInterval(slideInterval);
+                slideInterval = null;
+            }
+        }
+
+        // Gestione del fullscreen
+        function toggleFullscreen() {
+            const container = document.querySelector('.carousel-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.error(`Errore nell'attivazione del fullscreen: ${err.message}`);
+                });
             } else {
-                timerText.classList.remove('timer-warning');
-            }
-            timerText.textContent = seconds.toString().padStart(2, '0');
-        }
-    }
-
-    function startTimer() {
-        remainingTime = 10;
-        updateTimer();
-        
-        if (pageTimer) {
-            clearInterval(pageTimer);
-        }
-        
-        pageTimer = setInterval(() => {
-            remainingTime--;
-            updateTimer();
-            
-            if (remainingTime <= 0) {
-                switchPage();
-            }
-        }, 1000);
-    }
-
-    function switchPage() {
-        const pages = {
-            'montecuccoli': {
-                main: 'playlist.html',
-                subs: 'sostituzioni.html?location=TO1'
-            },
-            'luini': {
-                main: 'vialuini.html',
-                subs: 'sostituzioni.html?location=TO3'
-            },
-            'sansovino': {
-                main: 'viasansovino.html',
-                subs: 'sostituzioni.html?location=TO2'
-            }
-        };
-
-        const locationPages = pages[currentLocation];
-        
-        if (currentPage === locationPages.main) {
-            currentPage = locationPages.subs;
-            saveTotemState(currentLocation, currentPage);
-            window.location.href = locationPages.subs;
-        } else {
-            currentPage = locationPages.main;
-            saveTotemState(currentLocation, currentPage);
-            window.location.href = locationPages.main;
-        }
-    }
-
-    // Funzione per inizializzare il totem su qualsiasi pagina
-    function initializeTotem() {
-        const isActive = sessionStorage.getItem('totemActive') === 'true';
-        if (!isActive) return;
-
-        const location = sessionStorage.getItem('totemLocation');
-        const page = sessionStorage.getItem('totemPage');
-        
-        if (location && page) {
-            currentLocation = location;
-            currentPage = page;
-            isTotemActive = true;
-            createTimerOverlay();
-            startTimer();
-            
-            // Attiva automaticamente lo schermo intero
-            const carouselContainer = document.querySelector('.carousel-container');
-            if (carouselContainer) {
-                setTimeout(() => {
-                    carouselContainer.requestFullscreen().catch(err => {
-                        console.error(`Errore nell'attivazione della modalità schermo intero: ${err.message}`);
-                    });
-                }, 1000); // Piccolo delay per assicurarsi che il contenuto sia caricato
+                document.exitFullscreen();
             }
         }
-    }
 
-    // Check if we're in a totem loop
-    window.addEventListener('load', () => {
-        // Siamo nella pagina vialuini.html, quindi siamo in luini
-        currentLocation = 'luini';
-        currentPage = 'vialuini.html';
-        initializeTotem();
-    });
+        // Event listener per il cambio di stato del fullscreen
+        document.addEventListener('fullscreenchange', () => {
+            isFullscreen = !!document.fullscreenElement;
+            const container = document.querySelector('.carousel-container');
+            if (isFullscreen) {
+                container.classList.add('fullscreen');
+            } else {
+                container.classList.remove('fullscreen');
+            }
+        });
 
-    // Pulisci lo stato quando si chiude la finestra
-    window.addEventListener('beforeunload', () => {
-        if (!isTotemActive) {
-            clearTotemState();
-        }
-    });
+        // Event listener per i tasti freccia
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            } else if (e.key === 'f') {
+                toggleFullscreen();
+            }
+        });
+
+        // Inizializza il carousel quando il documento è caricato
+        document.addEventListener('DOMContentLoaded', initializeCarousel);
     </script>
 
     <style>

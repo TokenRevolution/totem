@@ -1837,6 +1837,600 @@
                 width: 100%;
             }
         }
+
+        /* Stili per i popup fluttuanti */
+        .floating-form {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none; /* Cambiato da flex a none */
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .floating-form.active {
+            display: flex; /* Mostra il form come flex quando è attivo */
+        }
+
+        /* Overlay per il popup */
+        .form-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .form-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .form-container {
+            background: #ffffff;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .form-header {
+            background: #ffffff;
+            padding: 1.5rem;
+            border-bottom: 2px solid var(--primary-color);
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-header h2 {
+            margin: 0;
+            color: #333333;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .form-header .close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #666666;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .form-header .close-button:hover {
+            background: #f0f0f0;
+            color: #333333;
+        }
+
+        .form-content {
+            padding: 2rem;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            background: #ffffff;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333333;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #ffffff;
+            color: #333333;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #999999;
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
+            padding-right: 2.5rem;
+        }
+
+        .form-group input[type="file"] {
+            padding: 1rem;
+            background: #f8f9fa;
+            border: 2px dashed #e0e0e0;
+            cursor: pointer;
+            color: #666666;
+        }
+
+        .form-group input[type="file"]:hover {
+            border-color: var(--primary-color);
+            background: #f0f0f0;
+        }
+
+        .file-preview {
+            margin-top: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .form-actions {
+            background: #ffffff;
+            padding: 1.5rem;
+            border-top: 1px solid #e0e0e0;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .form-actions button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .save-button {
+            background: var(--primary-color);
+            color: #ffffff;
+        }
+
+        .save-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .cancel-button {
+            background: #f8f9fa;
+            color: #666666;
+            border: 1px solid #e0e0e0;
+        }
+
+        .cancel-button:hover {
+            background: #e9ecef;
+            color: #333333;
+        }
+
+        /* Stili per la scrollbar del form */
+        .form-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .form-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .form-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .form-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Scroll to top button */
+        .scroll-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .scroll-top:hover {
+            transform: translateY(-2px);
+            background: var(--primary-dark);
+        }
+
+        .scroll-top.visible {
+            display: flex;
+        }
     </style>
+
+    <!-- Overlay per i form -->
+    <div id="formOverlay" class="form-overlay"></div>
+
+    <!-- Form fluttuante per il carosello -->
+    <div id="carouselForm" class="floating-form">
+        <div class="form-container">
+            <div class="form-header">
+                <h2><i class="fas fa-images"></i> Gestione Contenuto Carosello</h2>
+                <button class="close-button" onclick="closeFloatingForm('carouselForm')">&times;</button>
+            </div>
+            <div class="form-content">
+                <form id="carouselItemForm" onsubmit="handleCarouselItemSubmit(event)">
+                    <input type="hidden" id="carouselItemId">
+                    <div class="form-group">
+                        <label for="itemType">Tipo Contenuto:</label>
+                        <select id="itemType" required onchange="toggleMediaInput()">
+                            <option value="image">Immagine</option>
+                            <option value="video">Video</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemTitle">Titolo:</label>
+                        <input type="text" id="itemTitle" required placeholder="Inserisci il titolo del contenuto">
+                    </div>
+                    <div class="form-group">
+                        <label for="itemFile">File:</label>
+                        <input type="file" id="itemFile" accept="image/*,video/*" required>
+                        <div id="filePreview" class="file-preview"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="cancel-button" onclick="closeFloatingForm('carouselForm')">
+                    <i class="fas fa-times"></i> Annulla
+                </button>
+                <button type="submit" form="carouselItemForm" class="save-button">
+                    <i class="fas fa-save"></i> Salva
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form fluttuante per gli eventi del calendario -->
+    <div id="calendarForm" class="floating-form">
+        <div class="form-container">
+            <div class="form-header">
+                <h2><i class="fas fa-calendar-alt"></i> Gestione Evento</h2>
+                <button class="close-button" onclick="closeFloatingForm('calendarForm')">&times;</button>
+            </div>
+            <div class="form-content">
+                <form id="calendarEventForm" onsubmit="handleCalendarEventSubmit(event)">
+                    <input type="hidden" id="eventId">
+                    <div class="form-group">
+                        <label for="eventDate">Data:</label>
+                        <input type="date" id="eventDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventLocation">Sede:</label>
+                        <select id="eventLocation" required>
+                            <option value="all">Tutte le Sedi</option>
+                            <option value="TO1">TO1</option>
+                            <option value="TO2">TO2</option>
+                            <option value="TO3">TO3</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventTimeSlot">Orario:</label>
+                        <select id="eventTimeSlot" required>
+                            <option value="1">1° ora (8:00-9:00)</option>
+                            <option value="2">2° ora (9:00-10:00)</option>
+                            <option value="3">3° ora (10:00-11:00)</option>
+                            <option value="4">4° ora (11:00-12:00)</option>
+                            <option value="5">5° ora (12:00-13:00)</option>
+                            <option value="6">6° ora (13:00-14:00)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventTitle">Titolo Evento:</label>
+                        <input type="text" id="eventTitle" required placeholder="Inserisci il titolo dell'evento">
+                    </div>
+                    <div class="form-group">
+                        <label for="eventDescription">Descrizione:</label>
+                        <textarea id="eventDescription" rows="3" placeholder="Inserisci una descrizione dell'evento"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="cancel-button" onclick="closeFloatingForm('calendarForm')">
+                    <i class="fas fa-times"></i> Annulla
+                </button>
+                <button type="submit" form="calendarEventForm" class="save-button">
+                    <i class="fas fa-save"></i> Salva
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form fluttuante per le sostituzioni -->
+    <div id="substitutionForm" class="floating-form">
+        <div class="form-container">
+            <div class="form-header">
+                <h2><i class="fas fa-exchange-alt"></i> Gestione Sostituzione</h2>
+                <button class="close-button" onclick="closeFloatingForm('substitutionForm')">&times;</button>
+            </div>
+            <div class="form-content">
+                <form id="substitutionFormContent" onsubmit="handleSubstitutionSubmit(event)">
+                    <input type="hidden" id="substitutionId">
+                    <div class="form-group">
+                        <label for="substitutionDate">Data:</label>
+                        <input type="date" id="substitutionDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionLocation">Sede:</label>
+                        <select id="substitutionLocation" required>
+                            <option value="TO1">TO1</option>
+                            <option value="TO2">TO2</option>
+                            <option value="TO3">TO3</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionTimeSlot">Orario:</label>
+                        <select id="substitutionTimeSlot" required>
+                            <option value="1">1° ora (8:00-9:00)</option>
+                            <option value="2">2° ora (9:00-10:00)</option>
+                            <option value="3">3° ora (10:00-11:00)</option>
+                            <option value="4">4° ora (11:00-12:00)</option>
+                            <option value="5">5° ora (12:00-13:00)</option>
+                            <option value="6">6° ora (13:00-14:00)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionClass">Classe:</label>
+                        <input type="text" id="substitutionClass" required placeholder="es. 1A">
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionSubject">Materia:</label>
+                        <input type="text" id="substitutionSubject" required placeholder="es. Matematica">
+                    </div>
+                    <div class="form-group">
+                        <label for="replacedTeacher">Docente Sostituito:</label>
+                        <input type="text" id="replacedTeacher" required placeholder="Nome del docente sostituito">
+                    </div>
+                    <div class="form-group">
+                        <label for="substituteTeacher">Docente Sostituto:</label>
+                        <input type="text" id="substituteTeacher" required placeholder="Nome del docente sostituto">
+                    </div>
+                </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="cancel-button" onclick="closeFloatingForm('substitutionForm')">
+                    <i class="fas fa-times"></i> Annulla
+                </button>
+                <button type="submit" form="substitutionFormContent" class="save-button">
+                    <i class="fas fa-save"></i> Salva
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funzioni per gestire i form fluttuanti
+        function showFloatingForm(formId) {
+            const overlay = document.getElementById('formOverlay');
+            const form = document.getElementById(formId);
+            
+            // Nascondi tutti gli altri form attivi
+            document.querySelectorAll('.floating-form.active').forEach(f => {
+                if (f.id !== formId) {
+                    f.classList.remove('active');
+                }
+            });
+            
+            // Mostra l'overlay e il form
+            overlay.classList.add('active');
+            form.classList.add('active');
+            
+            // Imposta la data odierna come default per i campi data
+            const dateInputs = form.querySelectorAll('input[type="date"]');
+            const today = new Date().toISOString().split('T')[0];
+            dateInputs.forEach(input => {
+                if (!input.value) {
+                    input.value = today;
+                }
+            });
+
+            // Scrolla in cima al form
+            form.scrollTop = 0;
+
+            // Aggiungi event listener per chiudere il form quando si clicca sull'overlay
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    closeFloatingForm(formId);
+                }
+            };
+
+            // Aggiungi event listener per chiudere il form con il tasto ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeFloatingForm(formId);
+                }
+            });
+        }
+
+        function closeFloatingForm(formId) {
+            const overlay = document.getElementById('formOverlay');
+            const form = document.getElementById(formId);
+            
+            // Rimuovi le classi active
+            overlay.classList.remove('active');
+            form.classList.remove('active');
+            
+            // Rimuovi gli event listener
+            overlay.onclick = null;
+            document.removeEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeFloatingForm(formId);
+                }
+            });
+            
+            // Resetta il form
+            const formElement = form.querySelector('form');
+            if (formElement) {
+                formElement.reset();
+            }
+            const filePreview = form.querySelector('.file-preview');
+            if (filePreview) {
+                filePreview.innerHTML = '';
+            }
+        }
+
+        // Aggiungi funzione per chiudere tutti i form
+        function closeAllForms() {
+            const overlay = document.getElementById('formOverlay');
+            document.querySelectorAll('.floating-form.active').forEach(form => {
+                form.classList.remove('active');
+            });
+            overlay.classList.remove('active');
+        }
+
+        // Modifica gli event listener dei pulsanti di chiusura
+        document.querySelectorAll('.close-button').forEach(button => {
+            button.onclick = function() {
+                const form = this.closest('.floating-form');
+                if (form) {
+                    closeFloatingForm(form.id);
+                }
+            };
+        });
+
+        // Aggiungi event listener per chiudere i form quando si clicca fuori
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('form-overlay')) {
+                closeAllForms();
+            }
+        });
+
+        // Modifica le funzioni esistenti per usare i nuovi form fluttuanti
+        window.addCarouselItem = () => {
+            showFloatingForm('carouselForm');
+        };
+
+        window.addCalendarEvent = () => {
+            showFloatingForm('calendarForm');
+        };
+
+        window.addSubstitution = () => {
+            showFloatingForm('substitutionForm');
+        };
+
+        // Funzione per mostrare messaggi di feedback
+        function showFeedback(message, type = 'info') {
+            const feedback = document.createElement('div');
+            feedback.className = `feedback-message ${type}`;
+            feedback.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(feedback);
+            
+            setTimeout(() => {
+                feedback.style.animation = 'slideInRight 0.3s ease-out reverse';
+                setTimeout(() => feedback.remove(), 300);
+            }, 3000);
+        }
+
+        // Aggiorna le funzioni di gestione degli eventi per usare il nuovo sistema di feedback
+        window.showSuccess = (message) => showFeedback(message, 'success');
+        window.showError = (message) => showFeedback(message, 'error');
+        window.showInfo = (message) => showFeedback(message, 'info');
+
+        // Funzione per gestire lo scroll-to-top
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Mostra/nascondi il pulsante scroll-to-top
+        window.onscroll = function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        };
+    </script>
+
+    <!-- Aggiungi il pulsante scroll-to-top prima della chiusura del body -->
+    <button id="scrollTop" class="scroll-top" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </button>
 </body>
 </html> 
