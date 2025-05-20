@@ -23,7 +23,7 @@
         </div>
 
         <div class="login-form glass-effect">
-            <form id="loginForm" onsubmit="handleLogin(event)">
+            <form id="loginForm">
                 <div class="form-group">
                     <label for="email">
                         <i class="fas fa-envelope"></i>
@@ -52,32 +52,50 @@
         </footer>
     </div>
 
-    <script type="module">
-        import { loginAdmin, onAuthChange } from './js/firebase-admin.js';
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <!-- Firebase Auth -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
+            authDomain: "gestione-totem.firebaseapp.com",
+            databaseURL: "https://gestione-totem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gestione-totem",
+            storageBucket: "gestione-totem.firebasestorage.app",
+            messagingSenderId: "940742220177",
+            appId: "1:940742220177:web:ec36d4958f6f02a948a230",
+            measurementId: "G-Y4WT9HRDSY"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
 
         // Check if user is already logged in
-        onAuthChange((user) => {
-            console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
+        auth.onAuthStateChanged((user) => {
             if (user) {
                 window.location.href = 'admin.html';
             }
         });
 
         // Handle login form submission
-        window.handleLogin = async (event) => {
-            event.preventDefault();
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
             
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
-            const submitButton = event.target.querySelector('button[type="submit"]');
+            const submitButton = e.target.querySelector('button[type="submit"]');
             
             try {
                 submitButton.disabled = true;
                 submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Accesso in corso...';
                 errorMessage.style.display = 'none';
                 
-                await loginAdmin(email, password);
+                await auth.signInWithEmailAndPassword(email, password);
                 window.location.href = 'admin.html';
             } catch (error) {
                 console.error('Login error:', error);
@@ -86,7 +104,7 @@
                 submitButton.disabled = false;
                 submitButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Accedi';
             }
-        };
+        });
     </script>
 
     <style>

@@ -283,62 +283,33 @@
         </footer>
     </div>
 
-    <script type="module">
-        import { 
-            onAuthChange,
-            exportCalendarData,
-            exportSubstitutionsData,
-            updateSubstitution,
-            deleteSubstitution,
-            updateOrgStructure,
-            getOrgStructure
-        } from './js/firebase-admin.js';
-        
-        import { 
-            getDatabase, 
-            ref, 
-            push, 
-            update, 
-            get, 
-            query, 
-            orderByChild, 
-            onValue,
-            remove
-        } from "firebase/database";
-        import { getAuth, signOut } from "firebase/auth";
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <!-- Firebase Auth -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <!-- Firebase Database -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
-        // Initialize Firebase services
-        const db = getDatabase();
-        const auth = getAuth();
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
+            authDomain: "gestione-totem.firebaseapp.com",
+            databaseURL: "https://gestione-totem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gestione-totem",
+            storageBucket: "gestione-totem.firebasestorage.app",
+            messagingSenderId: "940742220177",
+            appId: "1:940742220177:web:ec36d4958f6f02a948a230",
+            measurementId: "G-Y4WT9HRDSY"
+        };
 
-        // Utility function to convert file to base64
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    // Verifica il tipo di file
-                    const fileType = file.type;
-                    console.log('Tipo di file caricato:', fileType); // Debug log
-                    
-                    if (fileType.startsWith('video/')) {
-                        // Per i video, assicuriamoci di usare il tipo corretto
-                        const base64Data = reader.result;
-                        console.log('Video convertito in base64, lunghezza:', base64Data.length); // Debug log
-                        resolve(base64Data);
-                    } else if (fileType.startsWith('image/')) {
-                        // Per le immagini
-                        resolve(reader.result);
-                    } else {
-                        reject(new Error('Tipo di file non supportato'));
-                    }
-                };
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(file);
-            });
-        }
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
 
         // Check authentication state
-        onAuthChange((user) => {
+        auth.onAuthStateChanged((user) => {
             const loginPrompt = document.getElementById('loginPrompt');
             const adminContent = document.getElementById('adminContent');
             const adminUser = document.getElementById('adminUser');
@@ -347,6 +318,9 @@
                 loginPrompt.style.display = 'none';
                 adminContent.style.display = 'block';
                 adminUser.textContent = `Admin: ${user.email}`;
+                loadCarouselContent();
+                loadSubstitutions('all', new Date().toISOString().split('T')[0]);
+                loadCalendarEvents('all', new Date().toISOString().split('T')[0]);
             } else {
                 loginPrompt.style.display = 'block';
                 adminContent.style.display = 'none';
@@ -360,7 +334,7 @@
                 window.location.href = 'admin-login.html';
             } catch (error) {
                 console.error('Error logging out:', error);
-                showError('Errore durante il logout');
+                alert('Errore durante il logout');
             }
         };
 
@@ -422,8 +396,8 @@
                 console.log('File convertito in base64, tipo:', type); // Debug log
 
                 // Get current items to determine next order number
-                const carouselRef = ref(db, `carousel/${location}`);
-                const snapshot = await get(carouselRef);
+                const carouselRef = db.ref(`carousel/${location}`);
+                const snapshot = await carouselRef.once('value');
                 let nextOrder = 1;
                 
                 if (snapshot.exists()) {
@@ -444,10 +418,10 @@
 
                 if (itemId) {
                     // Update existing item
-                    await update(ref(db, `carousel/${location}/${itemId}`), itemData);
+                    await carouselRef.child(itemId).update(itemData);
                 } else {
                     // Add new item
-                    await push(ref(db, `carousel/${location}`), itemData);
+                    await carouselRef.push(itemData);
                 }
 
                 closeCarouselItemModal();
@@ -463,7 +437,7 @@
             if (confirm('Sei sicuro di voler eliminare questo contenuto?')) {
                 try {
                     // Delete item from Database
-                    await remove(ref(db, `carousel/${location}/${itemId}`));
+                    await db.ref(`carousel/${location}/${itemId}`).remove();
                     loadCarouselContent();
                     showSuccess('Contenuto eliminato con successo');
                 } catch (error) {
@@ -477,8 +451,7 @@
             const location = document.getElementById('carouselLocation').value;
             const itemsList = document.getElementById('carouselItemsList');
             
-            const carouselRef = ref(db, `carousel/${location}`);
-            onValue(carouselRef, (snapshot) => {
+            db.ref(`carousel/${location}`).on('value', (snapshot) => {
                 itemsList.innerHTML = '';
                 
                 if (!snapshot.exists()) {
@@ -532,13 +505,6 @@
                 });
             });
         };
-
-        // Initialize carousel content when admin panel is shown
-        onAuthChange((user) => {
-            if (user) {
-                loadCarouselContent();
-            }
-        });
 
         // File preview
         document.getElementById('itemFile').addEventListener('change', function(e) {
@@ -606,8 +572,8 @@
         };
 
         window.editSubstitution = (substitutionId) => {
-            const substitutionRef = ref(db, `substitutions/${substitutionId}`);
-            get(substitutionRef).then((snapshot) => {
+            const substitutionRef = db.ref(`substitutions/${substitutionId}`);
+            substitutionRef.once('value').then((snapshot) => {
                 if (snapshot.exists()) {
                     const substitution = snapshot.val();
                     const modal = document.getElementById('substitutionModal');
@@ -648,10 +614,17 @@
             try {
                 if (substitutionId) {
                     // Update existing substitution
-                    await update(ref(db, `substitutions/${substitutionId}`), substitution);
+                    await db.ref(`substitutions/${substitutionId}/date`).set(substitution.date);
+                    await db.ref(`substitutions/${substitutionId}/location`).set(substitution.location);
+                    await db.ref(`substitutions/${substitutionId}/timeSlot`).set(substitution.timeSlot);
+                    await db.ref(`substitutions/${substitutionId}/class`).set(substitution.class);
+                    await db.ref(`substitutions/${substitutionId}/subject`).set(substitution.subject);
+                    await db.ref(`substitutions/${substitutionId}/replacedTeacher`).set(substitution.replacedTeacher);
+                    await db.ref(`substitutions/${substitutionId}/substituteTeacher`).set(substitution.substituteTeacher);
+                    await db.ref(`substitutions/${substitutionId}/updatedAt`).set(substitution.updatedAt);
                 } else {
                     // Add new substitution
-                    await push(ref(db, 'substitutions'), substitution);
+                    await db.ref('substitutions').push(substitution);
                 }
                 closeSubstitutionModal();
                 loadSubstitutions();
@@ -664,7 +637,7 @@
         window.deleteSubstitution = async (substitutionId) => {
             if (confirm('Sei sicuro di voler eliminare questa sostituzione?')) {
                 try {
-                    await deleteSubstitution(substitutionId);
+                    await db.ref(`substitutions/${substitutionId}`).remove();
                     loadSubstitutions();
                     showSuccess('Sostituzione eliminata con successo');
                 } catch (error) {
@@ -684,10 +657,10 @@
         // Function to load and display substitutions with filters
         function loadSubstitutions(location = 'all', date = '') {
             console.log('Loading substitutions with filters:', { location, date }); // Debug log
-            const substitutionsRef = ref(db, 'substitutions');
-            const substitutionsQuery = query(substitutionsRef, orderByChild('date'));
+            const substitutionsRef = db.ref('substitutions');
+            const substitutionsQuery = substitutionsRef.orderByChild('date');
 
-            onValue(substitutionsQuery, (snapshot) => {
+            substitutionsQuery.on('value', (snapshot) => {
                 console.log('Snapshot received:', snapshot.exists()); // Debug log
                 const substitutionsList = document.getElementById('substitutionsList');
                 substitutionsList.innerHTML = '';
@@ -801,7 +774,7 @@
         });
 
         // Load substitutions when admin panel is shown
-        onAuthChange((user) => {
+        auth.onAuthStateChanged((user) => {
             if (user) {
                 const today = new Date().toISOString().split('T')[0];
                 loadSubstitutions('all', today);
@@ -874,8 +847,8 @@
         };
 
         window.editCalendarEvent = (eventId) => {
-            const eventRef = ref(db, `calendar/${eventId}`);
-            get(eventRef).then((snapshot) => {
+            const eventRef = db.ref(`calendar/${eventId}`);
+            eventRef.once('value').then((snapshot) => {
                 if (snapshot.exists()) {
                     const event = snapshot.val();
                     const modal = document.getElementById('calendarEventModal');
@@ -911,9 +884,14 @@
 
             try {
                 if (eventId) {
-                    await update(ref(db, `calendar/${eventId}`), calendarEvent);
+                    await db.ref(`calendar/${eventId}/date`).set(calendarEvent.date);
+                    await db.ref(`calendar/${eventId}/location`).set(calendarEvent.location);
+                    await db.ref(`calendar/${eventId}/timeSlot`).set(calendarEvent.timeSlot);
+                    await db.ref(`calendar/${eventId}/title`).set(calendarEvent.title);
+                    await db.ref(`calendar/${eventId}/description`).set(calendarEvent.description);
+                    await db.ref(`calendar/${eventId}/updatedAt`).set(calendarEvent.updatedAt);
                 } else {
-                    await push(ref(db, 'calendar'), calendarEvent);
+                    await db.ref('calendar').push(calendarEvent);
                 }
                 closeCalendarEventModal();
                 loadCalendarEvents();
@@ -926,7 +904,7 @@
         window.deleteCalendarEvent = async (eventId) => {
             if (confirm('Sei sicuro di voler eliminare questo evento?')) {
                 try {
-                    await remove(ref(db, `calendar/${eventId}`));
+                    await db.ref(`calendar/${eventId}`).remove();
                     loadCalendarEvents();
                 } catch (error) {
                     console.error('Error deleting calendar event:', error);
@@ -943,10 +921,10 @@
 
         function loadCalendarEvents(location = 'all', date = '') {
             console.log('Loading calendar events with filters:', { location, date });
-            const eventsRef = ref(db, 'calendar');
-            const eventsQuery = query(eventsRef, orderByChild('date'));
+            const eventsRef = db.ref('calendar');
+            const eventsQuery = eventsRef.orderByChild('date');
 
-            onValue(eventsQuery, (snapshot) => {
+            eventsQuery.on('value', (snapshot) => {
                 console.log('Calendar snapshot received:', snapshot.exists());
                 const eventsList = document.getElementById('calendarEventsList');
                 eventsList.innerHTML = '';
@@ -1055,7 +1033,7 @@
         });
 
         // Load calendar events when admin panel is shown
-        onAuthChange((user) => {
+        auth.onAuthStateChanged((user) => {
             if (user) {
                 const today = new Date().toISOString().split('T')[0];
                 loadCalendarEvents('all', today);
