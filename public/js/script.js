@@ -56,11 +56,11 @@ async function onYouTubeIframeAPIReady() {
                 'loop': 1,
                 'playlist': playlistId,
                 'controls': 1,
-                'autoplay': autoplaySupported ? 1 : 0,
+                'autoplay': 0, // Disabilitiamo l'autoplay di default
                 'rel': 0,
                 'showinfo': 0,
                 'modestbranding': 1,
-                'playsinline': 1, // Importante per iOS
+                'playsinline': 1,
                 'enablejsapi': 1,
                 'origin': window.location.origin
             },
@@ -79,20 +79,22 @@ async function onYouTubeIframeAPIReady() {
 
         player = new YT.Player('player', playerConfig);
 
-        // Aggiungi un messaggio per dispositivi mobili se l'autoplay non è supportato
-        if (isMobile && !autoplaySupported) {
+        // Aggiungi il pulsante play per dispositivi mobili
+        if (isMobile) {
             const playerContainer = document.querySelector('.player-container');
-            const mobileMessage = document.createElement('div');
-            mobileMessage.className = 'mobile-message glass-effect';
-            mobileMessage.innerHTML = `
-                <p>Per una migliore esperienza su dispositivi mobili:</p>
-                <ul>
-                    <li>Assicurati di avere una connessione stabile</li>
-                    <li>Usa la modalità desktop se disponibile</li>
-                    <li>Se il video non si avvia automaticamente, tocca il pulsante play</li>
-                </ul>
+            const playButton = document.createElement('div');
+            playButton.className = 'mobile-play-button glass-effect';
+            playButton.innerHTML = `
+                <i class="fas fa-play-circle"></i>
+                <span>Tocca per riprodurre</span>
             `;
-            playerContainer.appendChild(mobileMessage);
+            playButton.addEventListener('click', () => {
+                if (player && player.playVideo) {
+                    player.playVideo();
+                    playButton.style.display = 'none';
+                }
+            });
+            playerContainer.appendChild(playButton);
         }
     } catch (error) {
         console.error('Errore durante l\'inizializzazione del player:', error);
@@ -105,17 +107,24 @@ function onPlayerStateChange(event) {
     const statusDot = document.querySelector('.status-dot');
     const statusText = document.querySelector('.status-text');
     const playerInfo = document.querySelector('.player-info span');
+    const playButton = document.querySelector('.mobile-play-button');
 
     switch(event.data) {
         case YT.PlayerState.PLAYING:
             statusDot.style.color = '#4CAF50';
             statusText.textContent = 'Riproduzione in corso';
             playerInfo.textContent = 'Riproduzione in corso';
+            if (playButton) {
+                playButton.style.display = 'none';
+            }
             break;
         case YT.PlayerState.PAUSED:
             statusDot.style.color = '#FFC107';
             statusText.textContent = 'In pausa';
             playerInfo.textContent = 'In pausa';
+            if (playButton) {
+                playButton.style.display = 'flex';
+            }
             break;
         case YT.PlayerState.ENDED:
             if (isLooping) {
@@ -124,6 +133,9 @@ function onPlayerStateChange(event) {
                 statusDot.style.color = '#F44336';
                 statusText.textContent = 'Riproduzione terminata';
                 playerInfo.textContent = 'Riproduzione terminata';
+                if (playButton) {
+                    playButton.style.display = 'flex';
+                }
             }
             break;
     }
