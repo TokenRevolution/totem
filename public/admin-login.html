@@ -6,21 +6,6 @@
     <title>Admin Login - Totem</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Firebase App (the core Firebase SDK) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <!-- Firebase Auth -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <!-- Firebase Database -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-    <!-- Firebase Analytics -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
-    <script>
-        // Test script in head
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log('Page loaded');
-            alert('Page loaded - check console (F12)');
-        });
-    </script>
 </head>
 <body>
     <div class="container glass-effect">
@@ -67,13 +52,11 @@
         </footer>
     </div>
 
-    <!-- Test script before module -->
-    <script>
-        console.log('Before module script');
-        alert('Before module script - check console (F12)');
-    </script>
-
     <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
@@ -87,15 +70,14 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const analytics = firebase.analytics();
-        const auth = firebase.auth();
-        const db = firebase.database();
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
 
         console.log('Firebase initialized');
 
         // Check if user is already logged in
-        auth.onAuthStateChanged((user) => {
+        onAuthStateChanged(auth, (user) => {
             console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
             if (user) {
                 window.location.href = 'admin.html';
@@ -111,7 +93,7 @@
             const errorMessage = document.getElementById('errorMessage');
             const submitButton = event.target.querySelector('button[type="submit"]');
             
-            console.log('Attempting login with:', { email });
+            console.log('Attempting login...');
             
             try {
                 // Disable submit button and show loading state
@@ -120,19 +102,13 @@
                 errorMessage.style.display = 'none';
                 
                 // Attempt login
-                console.log('Calling login...');
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 console.log('Login successful:', userCredential.user);
                 
                 // Redirect to admin panel on success
                 window.location.href = 'admin.html';
             } catch (error) {
-                // Log detailed error information
-                console.error('Login error details:', {
-                    code: error.code,
-                    message: error.message,
-                    fullError: error
-                });
+                console.error('Login error:', error);
                 
                 // Show error message
                 let errorText = 'Errore di accesso: ';
@@ -152,8 +128,11 @@
                     case 'auth/too-many-requests':
                         errorText += 'Troppi tentativi di accesso. Riprova più tardi';
                         break;
+                    case 'auth/network-request-failed':
+                        errorText += 'Errore di connessione. Verifica la tua connessione internet';
+                        break;
                     default:
-                        errorText += `Errore: ${error.code || error.message}`;
+                        errorText += error.message || 'Errore sconosciuto';
                 }
                 
                 errorMessage.textContent = errorText;
