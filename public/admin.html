@@ -377,36 +377,43 @@
             const adminContent = document.getElementById('adminContent');
             const adminUser = document.getElementById('adminUser');
             
-            if (user) {
-                try {
-                    const hasPermissions = await checkUserPermissions();
-                    if (hasPermissions) {
-                        loginPrompt.style.display = 'none';
-                        adminContent.style.display = 'block';
-                        adminUser.textContent = `Admin: ${user.email}`;
-                    } else {
-                        showError('Accesso non autorizzato. Permessi insufficienti.');
-                        await handleLogout();
-                    }
-                } catch (error) {
-                    console.error('Error checking permissions:', error);
-                    showError('Errore nella verifica dei permessi.');
-                    await handleLogout();
+            try {
+                if (user) {
+                    console.log('User authenticated in admin panel:', user.email);
+                    loginPrompt.style.display = 'none';
+                    adminContent.style.display = 'block';
+                    adminUser.textContent = `Admin: ${user.email}`;
+                    
+                    // Carica i contenuti solo se l'utente è autenticato
+                    loadCarouselContent();
+                    loadSubstitutions('all', new Date().toISOString().split('T')[0]);
+                    loadCalendarEvents('all', new Date().toISOString().split('T')[0]);
+                } else {
+                    console.log('No authenticated user, showing login prompt');
+                    loginPrompt.style.display = 'block';
+                    adminContent.style.display = 'none';
+                    window.location.href = 'admin-login.html';
                 }
-            } else {
+            } catch (error) {
+                console.error('Error in admin panel auth state change:', error);
+                showError(error.message || 'Errore durante l\'accesso al pannello admin');
                 loginPrompt.style.display = 'block';
                 adminContent.style.display = 'none';
-                window.location.href = 'admin-login.html';
+                setTimeout(() => {
+                    window.location.href = 'admin-login.html';
+                }, 2000);
             }
         });
 
         // Handle logout
         window.handleLogout = async () => {
             try {
+                console.log('Logging out user');
                 await handleLogout();
+                console.log('User logged out successfully');
             } catch (error) {
-                console.error('Error logging out:', error);
-                showError('Errore durante il logout');
+                console.error('Error during logout:', error);
+                showError('Errore durante il logout. Riprova.');
             }
         };
 
@@ -1320,6 +1327,69 @@
             };
             return timeSlots[timeSlot] || `Orario ${timeSlot}`;
         }
+
+        // Funzione per mostrare messaggi di feedback
+        function showFeedback(message, type = 'info') {
+            console.log(`Showing ${type} feedback:`, message);
+            const feedback = document.createElement('div');
+            feedback.className = `feedback-message ${type}`;
+            feedback.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            // Rimuovi eventuali messaggi precedenti
+            document.querySelectorAll('.feedback-message').forEach(msg => msg.remove());
+            
+            document.body.appendChild(feedback);
+            
+            // Aggiungi stili per il feedback
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 8px;
+                background: ${type === 'success' ? 'rgba(76, 175, 80, 0.9)' : 
+                             type === 'error' ? 'rgba(244, 67, 54, 0.9)' : 
+                             'rgba(33, 150, 243, 0.9)'};
+                color: white;
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            setTimeout(() => {
+                feedback.style.animation = 'slideInRight 0.3s ease-out reverse';
+                setTimeout(() => feedback.remove(), 300);
+            }, 5000);
+        }
+
+        // Aggiorna le funzioni di gestione degli eventi per usare il nuovo sistema di feedback
+        window.showSuccess = (message) => showFeedback(message, 'success');
+        window.showError = (message) => showFeedback(message, 'error');
+        window.showInfo = (message) => showFeedback(message, 'info');
+
+        // Funzione per gestire lo scroll-to-top
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Mostra/nascondi il pulsante scroll-to-top
+        window.onscroll = function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        };
     </script>
 
     <style>
@@ -2399,6 +2469,7 @@
 
         // Funzione per mostrare messaggi di feedback
         function showFeedback(message, type = 'info') {
+            console.log(`Showing ${type} feedback:`, message);
             const feedback = document.createElement('div');
             feedback.className = `feedback-message ${type}`;
             feedback.innerHTML = `
@@ -2406,12 +2477,34 @@
                 <span>${message}</span>
             `;
             
+            // Rimuovi eventuali messaggi precedenti
+            document.querySelectorAll('.feedback-message').forEach(msg => msg.remove());
+            
             document.body.appendChild(feedback);
+            
+            // Aggiungi stili per il feedback
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 8px;
+                background: ${type === 'success' ? 'rgba(76, 175, 80, 0.9)' : 
+                             type === 'error' ? 'rgba(244, 67, 54, 0.9)' : 
+                             'rgba(33, 150, 243, 0.9)'};
+                color: white;
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                animation: slideInRight 0.3s ease-out;
+            `;
             
             setTimeout(() => {
                 feedback.style.animation = 'slideInRight 0.3s ease-out reverse';
                 setTimeout(() => feedback.remove(), 300);
-            }, 3000);
+            }, 5000);
         }
 
         // Aggiorna le funzioni di gestione degli eventi per usare il nuovo sistema di feedback

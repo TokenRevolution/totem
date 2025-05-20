@@ -86,40 +86,85 @@ export async function handleLogout() {
 
 // Funzione per monitorare lo stato di autenticazione
 export function onAuthChange(callback) {
-    return onAuthStateChanged(auth, (user) => {
+    console.log('Setting up auth state listener');
+    return onAuthStateChanged(auth, async (user) => {
+        console.log('Auth state changed:', user ? 'User logged in' : 'No user');
+        
         if (user) {
-            startSessionTimer();
-            // Aggiungi event listener per il movimento del mouse e la pressione dei tasti
-            document.addEventListener('mousemove', resetSessionTimer);
-            document.addEventListener('keypress', resetSessionTimer);
+            try {
+                console.log('User authenticated:', user.email);
+                startSessionTimer();
+                // Aggiungi event listener per il movimento del mouse e la pressione dei tasti
+                document.addEventListener('mousemove', resetSessionTimer);
+                document.addEventListener('keypress', resetSessionTimer);
+                
+                // Verifica i permessi solo se l'utente è autenticato
+                const hasPermissions = await checkUserPermissions();
+                console.log('User permissions check result:', hasPermissions);
+                
+                if (!hasPermissions) {
+                    console.log('User does not have admin permissions');
+                    await handleLogout();
+                    throw new Error('Accesso non autorizzato. Permessi insufficienti.');
+                }
+                
+                callback(user);
+            } catch (error) {
+                console.error('Error in auth state change:', error);
+                callback(null);
+                throw error;
+            }
         } else {
+            console.log('User logged out, cleaning up');
             if (sessionTimer) {
                 clearTimeout(sessionTimer);
             }
             // Rimuovi gli event listener
             document.removeEventListener('mousemove', resetSessionTimer);
             document.removeEventListener('keypress', resetSessionTimer);
+            callback(null);
         }
-        callback(user);
     });
 }
 
 // Funzione per verificare i permessi dell'utente
 export async function checkUserPermissions() {
     const user = getCurrentUser();
-    if (!user) return false;
+    console.log('Checking permissions for user:', user?.email);
+    
+    if (!user) {
+        console.log('No user found');
+        return false;
+    }
 
     try {
         const userRef = ref(db, `users/${user.uid}`);
+        console.log('Checking user permissions in database at path:', `users/${user.uid}`);
+        
         const snapshot = await get(userRef);
+        console.log('Database response:', snapshot.exists() ? 'User data found' : 'No user data found');
+        
         if (snapshot.exists()) {
             const userData = snapshot.val();
-            return userData.isAdmin === true;
+            console.log('User data:', userData);
+            const isAdmin = userData.isAdmin === true;
+            console.log('Is admin:', isAdmin);
+            return isAdmin;
         }
-        return false;
+        
+        // Se l'utente non esiste nel database, creiamo il record
+        console.log('Creating new user record in database');
+        await set(userRef, {
+            email: user.email,
+            isAdmin: true, // Imposta come admin di default per il primo accesso
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
+        });
+        console.log('New user record created');
+        return true;
     } catch (error) {
         console.error("Error checking permissions:", error);
-        return false;
+        throw new Error(`Errore nella verifica dei permessi: ${error.message}`);
     }
 }
 
