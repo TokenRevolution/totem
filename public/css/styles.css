@@ -574,17 +574,21 @@ h1::after {
 .carousel-container {
     position: relative;
     width: 100%;
-    height: 400px;
-    margin: 2rem 0;
-    border-radius: 15px;
+    max-width: 1200px;
+    margin: 20px auto;
     overflow: hidden;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .carousel {
-    width: 100%;
-    height: 100%;
     position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+    overflow: hidden;
 }
 
 .carousel-item {
@@ -609,60 +613,83 @@ h1::after {
 .carousel-item video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: #000;
 }
 
 .carousel-controls {
     position: absolute;
     bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
     display: flex;
-    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 10px;
     z-index: 10;
 }
 
-.carousel-dot {
-    width: 12px;
-    height: 12px;
+.carousel-prev,
+.carousel-next {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.carousel-dot.active {
-    background: var(--primary-color);
-    transform: scale(1.2);
-}
-
-.carousel-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
     width: 40px;
     height: 40px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
     cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 10;
+    color: white;
+    font-size: 1.2em;
+    transition: background-color 0.3s;
 }
 
-.carousel-arrow:hover {
-    background: rgba(0, 0, 0, 0.8);
+.carousel-prev:hover,
+.carousel-next:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
-.carousel-prev {
-    left: 20px;
+.carousel-dots {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
-.carousel-next {
-    right: 20px;
+.carousel-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.carousel-dot.active {
+    background: white;
+}
+
+@media (max-width: 768px) {
+    .carousel-container {
+        margin: 10px auto;
+    }
+
+    .carousel-controls {
+        bottom: 10px;
+    }
+
+    .carousel-prev,
+    .carousel-next {
+        width: 30px;
+        height: 30px;
+        font-size: 1em;
+    }
+
+    .carousel-dot {
+        width: 8px;
+        height: 8px;
+    }
 }
 
 /* Project Description Styles */

@@ -10,16 +10,9 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'public/index.html'),
         admin: resolve(__dirname, 'public/admin.html'),
-        adminLogin: resolve(__dirname, 'public/admin-login.html'),
-        sostituzioni: resolve(__dirname, 'public/sostituzioni.html'),
         playlist: resolve(__dirname, 'public/playlist.html'),
-        dm65: resolve(__dirname, 'public/dm65.html'),
-        dm66: resolve(__dirname, 'public/dm66.html'),
-        dm19: resolve(__dirname, 'public/dm19.html'),
-        pnrrLabs: resolve(__dirname, 'public/pnrr-labs.html'),
-        pnrrClassroom: resolve(__dirname, 'public/pnrr-classroom.html'),
-        calendarioImpegni: resolve(__dirname, 'public/calendario-impegni.html'),
-        organigramma: resolve(__dirname, 'public/organigramma.html')
+        vialuini: resolve(__dirname, 'public/vialuini.html'),
+        viasansovino: resolve(__dirname, 'public/viasansovino.html')
       }
     }
   },

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Totem Via Luini</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container glass-effect">
+        <div class="header">
+            <a href="index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                <span>Torna alla Home</span>
+            </a>
+            <a href="admin.html" class="admin-button">
+                <i class="fas fa-cog"></i>
+                <span>Admin Panel</span>
+            </a>
+            <div class="logo-container">
+                <img src="https://www.istitutoboselli.edu.it/wp-content/uploads/2024/04/logo-boselli-ritaglio-1.png" alt="Logo IIS P.Boselli" class="school-logo">
+            </div>
+            <h1>Via Luini</h1>
+            <div class="subtitle">Presentazione della sede</div>
+        </div>
+
+        <div class="carousel-container glass-effect">
+            <div class="carousel">
+                <!-- Il contenuto del carosello verrà popolato dinamicamente da Firebase -->
+            </div>
+            <div class="carousel-controls">
+                <button class="carousel-prev"><i class="fas fa-chevron-left"></i></button>
+                <div class="carousel-dots"></div>
+                <button class="carousel-next"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+
+        <div class="controls glass-effect">
+            <button id="toggleLoop" class="btn">
+                <i class="fas fa-sync-alt"></i>
+                <span>Toggle Loop</span>
+            </button>
+            <div class="status-indicator">
+                <i class="fas fa-circle status-dot"></i>
+                <span class="status-text">Loop attivo</span>
+            </div>
+        </div>
+
+        <footer class="footer glass-effect">
+            <p>© 2024 Totem | IIS P.Boselli Torino | Tutti i diritti riservati</p>
+            <p class="footer-sub">Progetto sviluppato presso l'Istituto di Istruzione Superiore Paolo Boselli di Torino</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
+            authDomain: "gestione-totem.firebaseapp.com",
+            databaseURL: "https://gestione-totem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gestione-totem",
+            storageBucket: "gestione-totem.firebasestorage.app",
+            messagingSenderId: "940742220177",
+            appId: "1:940742220177:web:ec36d4958f6f02a948a230",
+            measurementId: "G-Y4WT9HRDSY"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let currentIndex = 0;
+        let items = [];
+        let isLooping = true;
+        let autoplayInterval;
+
+        // Carica i contenuti da Firebase
+        function loadContent() {
+            const contentRef = ref(db, 'carousel/vialuini');
+            onValue(contentRef, (snapshot) => {
+                items = [];
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        items.push(childSnapshot.val());
+                    });
+                    updateCarousel();
+                    startAutoplay();
+                }
+            });
+        }
+
+        // Aggiorna il carosello
+        function updateCarousel() {
+            const carousel = document.querySelector('.carousel');
+            const dots = document.querySelector('.carousel-dots');
+            
+            carousel.innerHTML = '';
+            dots.innerHTML = '';
+
+            items.forEach((item, index) => {
+                // Crea l'elemento del carosello
+                const carouselItem = document.createElement('div');
+                carouselItem.className = `carousel-item ${index === currentIndex ? 'active' : ''}`;
+                
+                if (item.type === 'video') {
+                    carouselItem.innerHTML = `
+                        <video autoplay loop muted playsinline>
+                            <source src="${item.url}" type="video/mp4">
+                        </video>
+                    `;
+                } else {
+                    carouselItem.innerHTML = `
+                        <img src="${item.url}" alt="${item.title || 'Immagine'}">
+                    `;
+                }
+                
+                carousel.appendChild(carouselItem);
+
+                // Crea il dot per questo elemento
+                const dot = document.createElement('div');
+                dot.className = `carousel-dot ${index === currentIndex ? 'active' : ''}`;
+                dot.addEventListener('click', () => goToSlide(index));
+                dots.appendChild(dot);
+            });
+        }
+
+        // Navigazione del carosello
+        function goToSlide(index) {
+            currentIndex = index;
+            updateCarousel();
+            resetAutoplay();
+        }
+
+        function nextSlide() {
+            currentIndex = (currentIndex + 1) % items.length;
+            updateCarousel();
+        }
+
+        function prevSlide() {
+            currentIndex = (currentIndex - 1 + items.length) % items.length;
+            updateCarousel();
+        }
+
+        // Autoplay
+        function startAutoplay() {
+            if (isLooping) {
+                autoplayInterval = setInterval(nextSlide, 5000);
+            }
+        }
+
+        function resetAutoplay() {
+            clearInterval(autoplayInterval);
+            startAutoplay();
+        }
+
+        // Event Listeners
+        document.querySelector('.carousel-next').addEventListener('click', () => {
+            nextSlide();
+            resetAutoplay();
+        });
+
+        document.querySelector('.carousel-prev').addEventListener('click', () => {
+            prevSlide();
+            resetAutoplay();
+        });
+
+        document.getElementById('toggleLoop').addEventListener('click', function() {
+            isLooping = !isLooping;
+            if (isLooping) {
+                startAutoplay();
+                this.innerHTML = '<i class="fas fa-sync-alt"></i><span>Disabilita Loop</span>';
+                this.style.background = 'linear-gradient(45deg, var(--primary-color), var(--primary-dark))';
+                document.querySelector('.status-dot').style.color = '#4CAF50';
+                document.querySelector('.status-text').textContent = 'Loop attivo';
+            } else {
+                clearInterval(autoplayInterval);
+                this.innerHTML = '<i class="fas fa-sync-alt"></i><span>Abilita Loop</span>';
+                this.style.background = 'linear-gradient(45deg, #666666, #444444)';
+                document.querySelector('.status-dot').style.color = '#F44336';
+                document.querySelector('.status-text').textContent = 'Loop disattivato';
+            }
+        });
+
+        // Inizializza
+        loadContent();
+    </script>
+</body>
+</html> 
