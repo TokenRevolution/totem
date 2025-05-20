@@ -53,9 +53,9 @@
     </div>
 
     <script type="module">
+        // Import only what we need for authentication
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
 
         // Firebase configuration
         const firebaseConfig = {
@@ -69,12 +69,11 @@
             measurementId: "G-Y4WT9HRDSY"
         };
 
-        // Initialize Firebase
+        // Initialize Firebase with only auth
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         const auth = getAuth(app);
 
-        console.log('Firebase initialized');
+        console.log('Firebase Auth initialized');
 
         // Check if user is already logged in
         onAuthStateChanged(auth, (user) => {
