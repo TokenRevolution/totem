@@ -17,28 +17,87 @@ function createParticles() {
     }
 }
 
-// Initialize YouTube Player
-function onYouTubeIframeAPIReady() {
-    player = new YT.Player('player', {
-        height: '100%',
-        width: '100%',
-        videoId: 'gfow08no7q8',
-        playerVars: {
-            'listType': 'playlist',
-            'list': playlistId,
-            'loop': 1,
-            'playlist': playlistId,
-            'controls': 1,
-            'autoplay': 1,
-            'rel': 0,
-            'showinfo': 0,
-            'modestbranding': 1
-        },
-        events: {
-            'onStateChange': onPlayerStateChange,
-            'onReady': onPlayerReady
+// Funzione per verificare se il dispositivo è mobile
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Funzione per verificare se il browser supporta l'autoplay
+async function checkAutoplaySupport() {
+    try {
+        const video = document.createElement('video');
+        video.muted = true;
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+            await playPromise;
+            video.pause();
+            return true;
         }
-    });
+        return false;
+    } catch (e) {
+        console.warn('Autoplay non supportato:', e);
+        return false;
+    }
+}
+
+// Initialize YouTube Player
+async function onYouTubeIframeAPIReady() {
+    try {
+        const isMobile = isMobileDevice();
+        const autoplaySupported = await checkAutoplaySupport();
+        
+        const playerConfig = {
+            height: '100%',
+            width: '100%',
+            videoId: 'gfow08no7q8',
+            playerVars: {
+                'listType': 'playlist',
+                'list': playlistId,
+                'loop': 1,
+                'playlist': playlistId,
+                'controls': 1,
+                'autoplay': autoplaySupported ? 1 : 0,
+                'rel': 0,
+                'showinfo': 0,
+                'modestbranding': 1,
+                'playsinline': 1, // Importante per iOS
+                'enablejsapi': 1,
+                'origin': window.location.origin
+            },
+            events: {
+                'onStateChange': onPlayerStateChange,
+                'onReady': onPlayerReady,
+                'onError': onPlayerError
+            }
+        };
+
+        // Configurazioni specifiche per mobile
+        if (isMobile) {
+            playerConfig.playerVars.mobile = 1;
+            playerConfig.playerVars.playsinline = 1;
+        }
+
+        player = new YT.Player('player', playerConfig);
+
+        // Aggiungi un messaggio per dispositivi mobili se l'autoplay non è supportato
+        if (isMobile && !autoplaySupported) {
+            const playerContainer = document.querySelector('.player-container');
+            const mobileMessage = document.createElement('div');
+            mobileMessage.className = 'mobile-message glass-effect';
+            mobileMessage.innerHTML = `
+                <p>Per una migliore esperienza su dispositivi mobili:</p>
+                <ul>
+                    <li>Assicurati di avere una connessione stabile</li>
+                    <li>Usa la modalità desktop se disponibile</li>
+                    <li>Se il video non si avvia automaticamente, tocca il pulsante play</li>
+                </ul>
+            `;
+            playerContainer.appendChild(mobileMessage);
+        }
+    } catch (error) {
+        console.error('Errore durante l\'inizializzazione del player:', error);
+        showErrorMessage('Errore durante l\'inizializzazione del player. Ricarica la pagina o prova un browser diverso.');
+    }
 }
 
 // Handle player state changes
@@ -96,6 +155,48 @@ document.getElementById('toggleLoop').addEventListener('click', function() {
         statusText.textContent = 'Loop disattivato';
     }
 });
+
+// Gestione errori del player
+function onPlayerError(event) {
+    console.error('Errore del player YouTube:', event.data);
+    let errorMessage = 'Si è verificato un errore durante la riproduzione. ';
+    
+    switch(event.data) {
+        case 2:
+            errorMessage += 'ID video non valido.';
+            break;
+        case 5:
+            errorMessage += 'Errore HTML5. Prova un browser diverso.';
+            break;
+        case 100:
+            errorMessage += 'Video non trovato o non disponibile.';
+            break;
+        case 101:
+        case 150:
+            errorMessage += 'Il video non può essere riprodotto in questo player.';
+            break;
+        default:
+            errorMessage += 'Errore sconosciuto. Ricarica la pagina.';
+    }
+    
+    showErrorMessage(errorMessage);
+}
+
+// Mostra messaggi di errore all'utente
+function showErrorMessage(message) {
+    const playerContainer = document.querySelector('.player-container');
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message glass-effect';
+    errorDiv.innerHTML = `
+        <i class="fas fa-exclamation-circle"></i>
+        <p>${message}</p>
+        <button onclick="window.location.reload()" class="btn">
+            <i class="fas fa-sync-alt"></i>
+            Ricarica pagina
+        </button>
+    `;
+    playerContainer.appendChild(errorDiv);
+}
 
 // Handle errors
 window.onerror = function(msg, url, lineNo, columnNo, error) {
