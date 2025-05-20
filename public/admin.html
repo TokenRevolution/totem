@@ -30,6 +30,28 @@
         </div>
 
         <div id="adminContent" class="admin-panel" style="display: none;">
+            <!-- Carousel Management Section -->
+            <div class="admin-section glass-effect">
+                <h2><i class="fas fa-images"></i> Gestione Carosello</h2>
+                <div class="admin-controls">
+                    <div class="location-selector">
+                        <label for="carouselLocation">Seleziona Sede:</label>
+                        <select id="carouselLocation" onchange="loadCarouselContent()">
+                            <option value="viasansovino">Via Sansovino</option>
+                            <option value="vialuini">Via Luini</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="addCarouselItem()" class="admin-button-small">
+                            <i class="fas fa-plus"></i> Nuovo Contenuto
+                        </button>
+                    </div>
+                </div>
+                <div id="carouselItemsList" class="carousel-items-list">
+                    <!-- Carousel items will be loaded here -->
+                </div>
+            </div>
+
             <!-- Calendar Section -->
             <div class="admin-section glass-effect">
                 <h2><i class="fas fa-calendar-alt"></i> Gestione Calendario</h2>
@@ -212,6 +234,39 @@
             </div>
         </div>
 
+        <!-- Carousel Item Modal -->
+        <div id="carouselItemModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Gestione Contenuto Carosello</h2>
+                    <button onclick="closeCarouselItemModal()" class="close-button">&times;</button>
+                </div>
+                <form id="carouselItemForm" onsubmit="handleCarouselItemSubmit(event)">
+                    <input type="hidden" id="carouselItemId">
+                    <div class="form-group">
+                        <label for="itemType">Tipo Contenuto:</label>
+                        <select id="itemType" required onchange="toggleMediaInput()">
+                            <option value="image">Immagine</option>
+                            <option value="video">Video</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemTitle">Titolo:</label>
+                        <input type="text" id="itemTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemFile">File:</label>
+                        <input type="file" id="itemFile" accept="image/*,video/*" required>
+                        <div id="filePreview" class="file-preview"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="save-button">Salva</button>
+                        <button type="button" onclick="closeCarouselItemModal()" class="cancel-button">Annulla</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div id="loginPrompt" class="login-prompt glass-effect">
             <i class="fas fa-lock"></i>
             <h2>Accesso Richiesto</h2>
@@ -251,10 +306,18 @@
             remove
         } from "firebase/database";
         import { getAuth, signOut } from "firebase/auth";
+        import { 
+            getStorage, 
+            ref as storageRef, 
+            uploadBytes, 
+            getDownloadURL,
+            deleteObject
+        } from "firebase/storage";
 
         // Initialize Firebase services
         const db = getDatabase();
         const auth = getAuth();
+        const storage = getStorage();
 
         // Utility function for time slots
         function getTimeSlotText(slot) {
@@ -304,6 +367,169 @@
                 showError('Errore durante il logout');
             }
         };
+
+        // Carousel Management Functions
+        window.addCarouselItem = () => {
+            const modal = document.getElementById('carouselItemModal');
+            const form = document.getElementById('carouselItemForm');
+            
+            document.getElementById('carouselItemId').value = '';
+            document.getElementById('itemType').value = 'image';
+            document.getElementById('itemTitle').value = '';
+            document.getElementById('itemFile').value = '';
+            document.getElementById('filePreview').innerHTML = '';
+            
+            modal.style.display = 'block';
+        };
+
+        window.closeCarouselItemModal = () => {
+            document.getElementById('carouselItemModal').style.display = 'none';
+        };
+
+        window.toggleMediaInput = () => {
+            const type = document.getElementById('itemType').value;
+            const fileInput = document.getElementById('itemFile');
+            fileInput.accept = type === 'image' ? 'image/*' : 'video/*';
+        };
+
+        window.handleCarouselItemSubmit = async (event) => {
+            event.preventDefault();
+            
+            const location = document.getElementById('carouselLocation').value;
+            const itemId = document.getElementById('carouselItemId').value;
+            const type = document.getElementById('itemType').value;
+            const title = document.getElementById('itemTitle').value;
+            const file = document.getElementById('itemFile').files[0];
+
+            if (!file) {
+                alert('Seleziona un file');
+                return;
+            }
+
+            try {
+                // Upload file to Firebase Storage
+                const fileRef = storageRef(storage, `carousel/${location}/${Date.now()}_${file.name}`);
+                await uploadBytes(fileRef, file);
+                const url = await getDownloadURL(fileRef);
+
+                // Save item data to Realtime Database
+                const itemData = {
+                    type,
+                    title,
+                    url,
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (itemId) {
+                    // Update existing item
+                    await update(ref(db, `carousel/${location}/${itemId}`), itemData);
+                } else {
+                    // Add new item
+                    await push(ref(db, `carousel/${location}`), itemData);
+                }
+
+                closeCarouselItemModal();
+                loadCarouselContent();
+                showSuccess('Contenuto salvato con successo');
+            } catch (error) {
+                console.error('Error saving carousel item:', error);
+                showError('Errore durante il salvataggio del contenuto');
+            }
+        };
+
+        window.deleteCarouselItem = async (location, itemId, url) => {
+            if (confirm('Sei sicuro di voler eliminare questo contenuto?')) {
+                try {
+                    // Delete file from Storage
+                    const fileRef = storageRef(storage, url);
+                    await deleteObject(fileRef);
+
+                    // Delete item from Database
+                    await remove(ref(db, `carousel/${location}/${itemId}`));
+                    
+                    loadCarouselContent();
+                    showSuccess('Contenuto eliminato con successo');
+                } catch (error) {
+                    console.error('Error deleting carousel item:', error);
+                    showError('Errore durante l\'eliminazione del contenuto');
+                }
+            }
+        };
+
+        window.loadCarouselContent = () => {
+            const location = document.getElementById('carouselLocation').value;
+            const itemsList = document.getElementById('carouselItemsList');
+            
+            const carouselRef = ref(db, `carousel/${location}`);
+            onValue(carouselRef, (snapshot) => {
+                itemsList.innerHTML = '';
+                
+                if (!snapshot.exists()) {
+                    itemsList.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-images"></i>
+                            <p>Nessun contenuto trovato per questa sede</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                snapshot.forEach((childSnapshot) => {
+                    const item = childSnapshot.val();
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'carousel-item-card';
+                    
+                    const previewContent = item.type === 'image' 
+                        ? `<img src="${item.url}" alt="${item.title}" class="carousel-item-preview">`
+                        : `<video src="${item.url}" class="carousel-item-preview" muted></video>`;
+                    
+                    itemElement.innerHTML = `
+                        ${previewContent}
+                        <div class="carousel-item-info">
+                            <div class="carousel-item-title">${item.title}</div>
+                            <div class="carousel-item-type">
+                                <i class="fas fa-${item.type === 'image' ? 'image' : 'video'}"></i>
+                                ${item.type === 'image' ? 'Immagine' : 'Video'}
+                            </div>
+                        </div>
+                        <div class="carousel-item-actions">
+                            <button onclick="deleteCarouselItem('${location}', '${childSnapshot.key}', '${item.url}')" class="delete-button">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    itemsList.appendChild(itemElement);
+                });
+            });
+        };
+
+        // Initialize carousel content when admin panel is shown
+        onAuthChange((user) => {
+            if (user) {
+                loadCarouselContent();
+            }
+        });
+
+        // File preview
+        document.getElementById('itemFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('filePreview');
+            preview.innerHTML = '';
+
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                preview.appendChild(img);
+            } else if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.controls = true;
+                preview.appendChild(video);
+            }
+        });
 
         // Calendar functions
         window.editCalendar = () => {
@@ -1152,6 +1378,75 @@
                 justify-content: flex-end;
                 margin-left: 0;
             }
+        }
+
+        .carousel-items-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .carousel-item-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+        }
+
+        .carousel-item-preview {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .carousel-item-info {
+            margin-bottom: 10px;
+        }
+
+        .carousel-item-title {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .carousel-item-type {
+            font-size: 0.9em;
+            color: var(--primary-color);
+        }
+
+        .carousel-item-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .file-preview {
+            margin-top: 10px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow: hidden;
+            border-radius: 5px;
+        }
+
+        .file-preview img,
+        .file-preview video {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+        .location-selector {
+            margin-bottom: 20px;
+        }
+
+        .location-selector select {
+            padding: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
     </style>
 </body>
