@@ -53,30 +53,10 @@
     </div>
 
     <script type="module">
-        // Import only what we need for authentication
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
-            authDomain: "gestione-totem.firebaseapp.com",
-            databaseURL: "https://gestione-totem-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "gestione-totem",
-            storageBucket: "gestione-totem.firebasestorage.app",
-            messagingSenderId: "940742220177",
-            appId: "1:940742220177:web:ec36d4958f6f02a948a230",
-            measurementId: "G-Y4WT9HRDSY"
-        };
-
-        // Initialize Firebase with only auth
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        console.log('Firebase Auth initialized');
+        import { loginAdmin, onAuthChange } from './js/firebase-admin.js';
 
         // Check if user is already logged in
-        onAuthStateChanged(auth, (user) => {
+        onAuthChange((user) => {
             console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
             if (user) {
                 window.location.href = 'admin.html';
@@ -92,52 +72,17 @@
             const errorMessage = document.getElementById('errorMessage');
             const submitButton = event.target.querySelector('button[type="submit"]');
             
-            console.log('Attempting login...');
-            
             try {
-                // Disable submit button and show loading state
                 submitButton.disabled = true;
                 submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Accesso in corso...';
                 errorMessage.style.display = 'none';
                 
-                // Attempt login
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                console.log('Login successful:', userCredential.user);
-                
-                // Redirect to admin panel on success
+                await loginAdmin(email, password);
                 window.location.href = 'admin.html';
             } catch (error) {
                 console.error('Login error:', error);
-                
-                // Show error message
-                let errorText = 'Errore di accesso: ';
-                switch(error.code) {
-                    case 'auth/invalid-credential':
-                        errorText += 'Credenziali non valide';
-                        break;
-                    case 'auth/user-not-found':
-                        errorText += 'Utente non trovato';
-                        break;
-                    case 'auth/wrong-password':
-                        errorText += 'Password non valida';
-                        break;
-                    case 'auth/invalid-email':
-                        errorText += 'Email non valida';
-                        break;
-                    case 'auth/too-many-requests':
-                        errorText += 'Troppi tentativi di accesso. Riprova più tardi';
-                        break;
-                    case 'auth/network-request-failed':
-                        errorText += 'Errore di connessione. Verifica la tua connessione internet';
-                        break;
-                    default:
-                        errorText += error.message || 'Errore sconosciuto';
-                }
-                
-                errorMessage.textContent = errorText;
+                errorMessage.textContent = 'Errore di accesso: ' + (error.message || 'Credenziali non valide');
                 errorMessage.style.display = 'block';
-                
-                // Reset submit button
                 submitButton.disabled = false;
                 submitButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Accedi';
             }
