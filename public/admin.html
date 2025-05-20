@@ -314,12 +314,10 @@
     <script type="module">
         import { 
             onAuthChange,
-            exportCalendarData,
-            exportSubstitutionsData,
-            updateSubstitution,
-            deleteSubstitution,
-            updateOrgStructure,
-            getOrgStructure
+            handleLogout,
+            checkUserPermissions,
+            isAuthenticated,
+            getCurrentUser
         } from './js/firebase-admin.js';
         
         import { 
@@ -373,27 +371,39 @@
             });
         }
 
-        // Check authentication state
-        onAuthChange((user) => {
+        // Check authentication state and permissions
+        onAuthChange(async (user) => {
             const loginPrompt = document.getElementById('loginPrompt');
             const adminContent = document.getElementById('adminContent');
             const adminUser = document.getElementById('adminUser');
             
             if (user) {
-                loginPrompt.style.display = 'none';
-                adminContent.style.display = 'block';
-                adminUser.textContent = `Admin: ${user.email}`;
+                try {
+                    const hasPermissions = await checkUserPermissions();
+                    if (hasPermissions) {
+                        loginPrompt.style.display = 'none';
+                        adminContent.style.display = 'block';
+                        adminUser.textContent = `Admin: ${user.email}`;
+                    } else {
+                        showError('Accesso non autorizzato. Permessi insufficienti.');
+                        await handleLogout();
+                    }
+                } catch (error) {
+                    console.error('Error checking permissions:', error);
+                    showError('Errore nella verifica dei permessi.');
+                    await handleLogout();
+                }
             } else {
                 loginPrompt.style.display = 'block';
                 adminContent.style.display = 'none';
+                window.location.href = 'admin-login.html';
             }
         });
 
         // Handle logout
         window.handleLogout = async () => {
             try {
-                await auth.signOut();
-                window.location.href = 'admin-login.html';
+                await handleLogout();
             } catch (error) {
                 console.error('Error logging out:', error);
                 showError('Errore durante il logout');

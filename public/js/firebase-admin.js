@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getDatabase, ref, set, get, update, remove, push, child } from "firebase/database";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 
 // Firebase configuration
 export const firebaseConfig = {
@@ -22,10 +22,46 @@ const analytics = getAnalytics(app);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// Authentication functions
+// Costanti per la gestione della sessione
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuti in millisecondi
+let sessionTimer = null;
+
+// Funzione per gestire il timeout della sessione
+function startSessionTimer() {
+    if (sessionTimer) {
+        clearTimeout(sessionTimer);
+    }
+    sessionTimer = setTimeout(() => {
+        handleLogout();
+    }, SESSION_TIMEOUT);
+}
+
+// Funzione per resettare il timer della sessione
+function resetSessionTimer() {
+    startSessionTimer();
+}
+
+// Funzione per verificare se l'utente è autenticato
+export function isAuthenticated() {
+    return new Promise((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe();
+            resolve(!!user);
+        });
+    });
+}
+
+// Funzione per ottenere l'utente corrente
+export function getCurrentUser() {
+    return auth.currentUser;
+}
+
+// Funzione per gestire il login
 export async function loginAdmin(email, password) {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        localStorage.setItem('adminEmail', userCredential.user.email);
+        startSessionTimer();
         return userCredential.user;
     } catch (error) {
         console.error("Error logging in:", error);
@@ -33,21 +69,58 @@ export async function loginAdmin(email, password) {
     }
 }
 
-// Verifica se l'utente è loggato
-export function isLoggedIn() {
-    return localStorage.getItem('isLoggedIn') === 'true';
+// Funzione per gestire il logout
+export async function handleLogout() {
+    try {
+        await signOut(auth);
+        localStorage.removeItem('adminEmail');
+        if (sessionTimer) {
+            clearTimeout(sessionTimer);
+        }
+        window.location.href = 'admin-login.html';
+    } catch (error) {
+        console.error("Error logging out:", error);
+        throw error;
+    }
 }
 
-// Logout
-export function logout() {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('username');
-    window.location.href = 'admin-login.html';
-}
-
-// Authentication functions
+// Funzione per monitorare lo stato di autenticazione
 export function onAuthChange(callback) {
-    return onAuthStateChanged(auth, callback);
+    return onAuthStateChanged(auth, (user) => {
+        if (user) {
+            startSessionTimer();
+            // Aggiungi event listener per il movimento del mouse e la pressione dei tasti
+            document.addEventListener('mousemove', resetSessionTimer);
+            document.addEventListener('keypress', resetSessionTimer);
+        } else {
+            if (sessionTimer) {
+                clearTimeout(sessionTimer);
+            }
+            // Rimuovi gli event listener
+            document.removeEventListener('mousemove', resetSessionTimer);
+            document.removeEventListener('keypress', resetSessionTimer);
+        }
+        callback(user);
+    });
+}
+
+// Funzione per verificare i permessi dell'utente
+export async function checkUserPermissions() {
+    const user = getCurrentUser();
+    if (!user) return false;
+
+    try {
+        const userRef = ref(db, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        if (snapshot.exists()) {
+            const userData = snapshot.val();
+            return userData.isAdmin === true;
+        }
+        return false;
+    } catch (error) {
+        console.error("Error checking permissions:", error);
+        return false;
+    }
 }
 
 // Calendar Management

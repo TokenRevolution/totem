@@ -14,13 +14,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <!-- Firebase Analytics -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
-    <script>
-        // Test script in head
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log('Page loaded');
-            alert('Page loaded - check console (F12)');
-        });
-    </script>
 </head>
 <body>
     <div class="container glass-effect">
@@ -44,19 +37,19 @@
                         <i class="fas fa-envelope"></i>
                         Email
                     </label>
-                    <input type="email" id="email" name="email" required placeholder="Inserisci la tua email">
+                    <input type="email" id="email" name="email" required placeholder="Inserisci la tua email" autocomplete="email">
                 </div>
                 <div class="form-group">
                     <label for="password">
                         <i class="fas fa-key"></i>
                         Password
                     </label>
-                    <input type="password" id="password" name="password" required placeholder="Inserisci la tua password">
+                    <input type="password" id="password" name="password" required placeholder="Inserisci la tua password" autocomplete="current-password">
                 </div>
                 <div id="errorMessage" class="error-message"></div>
-                <button type="submit" class="btn">
+                <button type="submit" class="btn" id="loginButton">
                     <i class="fas fa-sign-in-alt"></i>
-                    Accedi
+                    <span>Accedi</span>
                 </button>
             </form>
         </div>
@@ -66,12 +59,6 @@
             <p class="footer-sub">Accesso Riservato - Area Amministrativa</p>
         </footer>
     </div>
-
-    <!-- Test script before module -->
-    <script>
-        console.log('Before module script');
-        alert('Before module script - check console (F12)');
-    </script>
 
     <script type="module">
         // Firebase configuration
@@ -92,12 +79,52 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
-        console.log('Firebase initialized');
+        // Variabili per il controllo dei tentativi di login
+        let loginAttempts = 0;
+        const MAX_LOGIN_ATTEMPTS = 5;
+        const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minuti in millisecondi
+        let lockoutEndTime = null;
+
+        // Funzione per verificare se l'utente è bloccato
+        function isUserLockedOut() {
+            if (lockoutEndTime && Date.now() < lockoutEndTime) {
+                const remainingMinutes = Math.ceil((lockoutEndTime - Date.now()) / 60000);
+                return `Troppi tentativi di accesso. Riprova tra ${remainingMinutes} minuti.`;
+            }
+            return null;
+        }
+
+        // Funzione per aggiornare il pulsante di login
+        function updateLoginButton(isLoading, isDisabled = false) {
+            const button = document.getElementById('loginButton');
+            const buttonText = button.querySelector('span');
+            const buttonIcon = button.querySelector('i');
+
+            button.disabled = isDisabled;
+            if (isLoading) {
+                buttonIcon.className = 'fas fa-spinner fa-spin';
+                buttonText.textContent = 'Accesso in corso...';
+            } else {
+                buttonIcon.className = 'fas fa-sign-in-alt';
+                buttonText.textContent = 'Accedi';
+            }
+        }
+
+        // Funzione per mostrare i messaggi di errore
+        function showError(message, isLockout = false) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            errorMessage.style.backgroundColor = isLockout ? 'rgba(255, 0, 0, 0.1)' : 'rgba(255, 68, 68, 0.1)';
+            updateLoginButton(false, isLockout);
+        }
 
         // Check if user is already logged in
         auth.onAuthStateChanged((user) => {
-            console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
             if (user) {
+                // Salva l'email dell'utente nel localStorage
+                localStorage.setItem('adminEmail', user.email);
+                // Reindirizza alla pagina admin
                 window.location.href = 'admin.html';
             }
         });
@@ -109,33 +136,40 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
-            const submitButton = event.target.querySelector('button[type="submit"]');
             
-            console.log('Attempting login with:', { email });
+            // Verifica se l'utente è bloccato
+            const lockoutMessage = isUserLockedOut();
+            if (lockoutMessage) {
+                showError(lockoutMessage, true);
+                return;
+            }
             
             try {
-                // Disable submit button and show loading state
-                submitButton.disabled = true;
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Accesso in corso...';
+                // Disabilita il pulsante e mostra lo stato di caricamento
+                updateLoginButton(true);
                 errorMessage.style.display = 'none';
                 
-                // Attempt login
-                console.log('Calling login...');
+                // Tentativo di login
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                console.log('Login successful:', userCredential.user);
                 
-                // Redirect to admin panel on success
+                // Reset dei tentativi di login in caso di successo
+                loginAttempts = 0;
+                lockoutEndTime = null;
+                
+                // Salva l'email dell'utente nel localStorage
+                localStorage.setItem('adminEmail', userCredential.user.email);
+                
+                // Reindirizza alla pagina admin
                 window.location.href = 'admin.html';
-            } catch (error) {
-                // Log detailed error information
-                console.error('Login error details:', {
-                    code: error.code,
-                    message: error.message,
-                    fullError: error
-                });
                 
-                // Show error message
+            } catch (error) {
+                // Incrementa il contatore dei tentativi
+                loginAttempts++;
+                
+                // Gestione degli errori
                 let errorText = 'Errore di accesso: ';
+                let isLockoutError = false;
+                
                 switch(error.code) {
                     case 'auth/invalid-credential':
                         errorText += 'Credenziali non valide';
@@ -150,20 +184,47 @@
                         errorText += 'Email non valida';
                         break;
                     case 'auth/too-many-requests':
-                        errorText += 'Troppi tentativi di accesso. Riprova più tardi';
+                        errorText += 'Troppi tentativi di accesso';
+                        isLockoutError = true;
                         break;
                     default:
-                        errorText += `Errore: ${error.code || error.message}`;
+                        errorText += 'Errore di connessione. Riprova più tardi.';
                 }
                 
-                errorMessage.textContent = errorText;
-                errorMessage.style.display = 'block';
+                // Se supera il numero massimo di tentativi, blocca l'accesso
+                if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+                    lockoutEndTime = Date.now() + LOCKOUT_DURATION;
+                    errorText = `Troppi tentativi di accesso. Riprova tra 15 minuti.`;
+                    isLockoutError = true;
+                }
                 
-                // Reset submit button
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Accedi';
+                showError(errorText, isLockoutError);
             }
         };
+
+        // Gestione della visibilità della password
+        const passwordInput = document.getElementById('password');
+        const togglePassword = document.createElement('button');
+        togglePassword.type = 'button';
+        togglePassword.className = 'toggle-password';
+        togglePassword.innerHTML = '<i class="fas fa-eye"></i>';
+        togglePassword.style.position = 'absolute';
+        togglePassword.style.right = '10px';
+        togglePassword.style.top = '50%';
+        togglePassword.style.transform = 'translateY(-50%)';
+        togglePassword.style.background = 'none';
+        togglePassword.style.border = 'none';
+        togglePassword.style.color = 'rgba(255, 255, 255, 0.5)';
+        togglePassword.style.cursor = 'pointer';
+        
+        passwordInput.parentElement.style.position = 'relative';
+        passwordInput.parentElement.appendChild(togglePassword);
+        
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            togglePassword.innerHTML = `<i class="fas fa-eye${type === 'password' ? '' : '-slash'}"></i>`;
+        });
     </script>
 
     <style>
@@ -175,11 +236,13 @@
             border-radius: 15px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
         }
 
         .form-group {
             margin-bottom: 1.5rem;
             text-align: left;
+            position: relative;
         }
 
         .form-group label {
@@ -197,6 +260,7 @@
         .form-group input {
             width: 100%;
             padding: 0.8rem;
+            padding-right: 40px; /* Spazio per il pulsante toggle password */
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.1);
@@ -209,6 +273,7 @@
             outline: none;
             border-color: var(--primary-color);
             background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
         }
 
         .form-group input::placeholder {
@@ -223,25 +288,84 @@
             margin-top: 1rem;
             display: none;
             text-align: center;
+            transition: all 0.3s ease;
         }
 
         .btn {
             width: 100%;
             margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
         }
 
         .btn:disabled {
             opacity: 0.7;
             cursor: not-allowed;
+            transform: none !important;
         }
 
         .btn i.fa-spinner {
             animation: spin 1s linear infinite;
         }
 
+        .toggle-password {
+            padding: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-password:hover {
+            color: var(--primary-color) !important;
+        }
+
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        /* Animazioni per il form */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-form {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Stili per il feedback visivo */
+        .form-group input:invalid {
+            border-color: rgba(255, 68, 68, 0.5);
+        }
+
+        .form-group input:valid {
+            border-color: rgba(76, 175, 80, 0.5);
+        }
+
+        /* Stili per il pulsante di login */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        .btn:active::after {
+            width: 200px;
+            height: 200px;
         }
     </style>
 </body>
