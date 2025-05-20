@@ -33,6 +33,9 @@
                 <button class="carousel-prev"><i class="fas fa-chevron-left"></i></button>
                 <div class="carousel-dots"></div>
                 <button class="carousel-next"><i class="fas fa-chevron-right"></i></button>
+                <button class="fullscreen-btn" title="Schermo intero">
+                    <i class="fas fa-expand"></i>
+                </button>
             </div>
         </div>
 
@@ -251,8 +254,197 @@
             }
         });
 
+        // Funzione per gestire la modalità schermo intero
+        function toggleFullscreen() {
+            const carouselContainer = document.querySelector('.carousel-container');
+            const fullscreenBtn = document.querySelector('.fullscreen-btn i');
+            
+            if (!document.fullscreenElement) {
+                carouselContainer.requestFullscreen().catch(err => {
+                    console.error(`Errore nell'attivazione della modalità schermo intero: ${err.message}`);
+                });
+                fullscreenBtn.classList.remove('fa-expand');
+                fullscreenBtn.classList.add('fa-compress');
+            } else {
+                document.exitFullscreen();
+                fullscreenBtn.classList.remove('fa-compress');
+                fullscreenBtn.classList.add('fa-expand');
+            }
+        }
+
+        // Event listener per il pulsante schermo intero
+        document.querySelector('.fullscreen-btn').addEventListener('click', toggleFullscreen);
+
+        // Gestione del cambio di stato dello schermo intero
+        document.addEventListener('fullscreenchange', () => {
+            const fullscreenBtn = document.querySelector('.fullscreen-btn i');
+            if (!document.fullscreenElement) {
+                fullscreenBtn.classList.remove('fa-compress');
+                fullscreenBtn.classList.add('fa-expand');
+            }
+        });
+
         // Inizializza
         loadContent();
+    </script>
+
+    <script>
+    // Totem Evolution Functions
+    let totemInterval = null;
+    let currentPage = '';
+    let currentLocation = '';
+    let pageTimer = null;
+    let remainingTime = 10; // 10 seconds for testing
+    let isTotemActive = false;
+
+    // Funzione per salvare lo stato del totem
+    function saveTotemState(location, page) {
+        sessionStorage.setItem('totemActive', 'true');
+        sessionStorage.setItem('totemLocation', location);
+        sessionStorage.setItem('totemPage', page);
+    }
+
+    // Funzione per rimuovere lo stato del totem
+    function clearTotemState() {
+        sessionStorage.removeItem('totemActive');
+        sessionStorage.removeItem('totemLocation');
+        sessionStorage.removeItem('totemPage');
+    }
+
+    function createTimerOverlay() {
+        // Rimuovi eventuali overlay esistenti
+        const existingOverlay = document.querySelector('.timer-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'timer-overlay';
+        overlay.innerHTML = `
+            <div class="timer-content">
+                <i class="fas fa-clock"></i>
+                <span id="timerText">10</span>
+            </div>
+            <button onclick="stopTotemLoop()" class="stop-totem-btn" title="Ferma il loop">
+                <i class="fas fa-stop-circle"></i>
+            </button>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function stopTotemLoop() {
+        if (pageTimer) {
+            clearInterval(pageTimer);
+            pageTimer = null;
+        }
+        
+        // Rimuovi il timer overlay
+        const overlay = document.querySelector('.timer-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        
+        // Pulisci lo stato del totem
+        clearTotemState();
+        isTotemActive = false;
+        
+        // Torna alla home
+        window.location.href = 'index.html';
+    }
+
+    function updateTimer() {
+        const seconds = remainingTime;
+        const timerText = document.getElementById('timerText');
+        if (timerText) {
+            // Aggiungi una classe per l'animazione quando mancano pochi secondi
+            if (seconds <= 3) {
+                timerText.classList.add('timer-warning');
+            } else {
+                timerText.classList.remove('timer-warning');
+            }
+            timerText.textContent = seconds.toString().padStart(2, '0');
+        }
+    }
+
+    function startTimer() {
+        remainingTime = 10;
+        updateTimer();
+        
+        if (pageTimer) {
+            clearInterval(pageTimer);
+        }
+        
+        pageTimer = setInterval(() => {
+            remainingTime--;
+            updateTimer();
+            
+            if (remainingTime <= 0) {
+                switchPage();
+            }
+        }, 1000);
+    }
+
+    function switchPage() {
+        const pages = {
+            'montecuccoli': {
+                main: 'playlist.html',
+                subs: 'sostituzioni.html?location=TO1'
+            },
+            'luini': {
+                main: 'vialuini.html',
+                subs: 'sostituzioni.html?location=TO3'
+            },
+            'sansovino': {
+                main: 'viasansovino.html',
+                subs: 'sostituzioni.html?location=TO2'
+            }
+        };
+
+        const locationPages = pages[currentLocation];
+        
+        if (currentPage === locationPages.main) {
+            currentPage = locationPages.subs;
+            saveTotemState(currentLocation, currentPage);
+            window.location.href = locationPages.subs;
+        } else {
+            currentPage = locationPages.main;
+            saveTotemState(currentLocation, currentPage);
+            window.location.href = locationPages.main;
+        }
+    }
+
+    // Funzione per inizializzare il totem su qualsiasi pagina
+    function initializeTotem() {
+        const isActive = sessionStorage.getItem('totemActive') === 'true';
+        if (!isActive) return;
+
+        const location = sessionStorage.getItem('totemLocation');
+        const page = sessionStorage.getItem('totemPage');
+        
+        if (location && page) {
+            currentLocation = location;
+            currentPage = page;
+            isTotemActive = true;
+            createTimerOverlay();
+            startTimer();
+        }
+    }
+
+    // Check if we're in a totem loop
+    window.addEventListener('load', () => {
+        // Siamo nella pagina viasansovino.html, quindi siamo in sansovino
+        currentLocation = 'sansovino';
+        currentPage = 'viasansovino.html';
+        initializeTotem();
+    });
+
+    // Pulisci lo stato quando si chiude la finestra
+    window.addEventListener('beforeunload', () => {
+        if (!isTotemActive) {
+            clearTotemState();
+        }
+    });
     </script>
 
     <style>
@@ -376,6 +568,183 @@
             background: var(--primary-color);
             transform: scale(1.2);
         }
+
+        .fullscreen-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s ease;
+            margin-left: 1rem;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .fullscreen-btn:active {
+            transform: scale(0.95);
+        }
+
+        .fullscreen-btn i {
+            font-size: 1.2rem;
+        }
+
+        /* Stili per la modalità schermo intero */
+        .carousel-container:fullscreen {
+            background: #000;
+            padding: 0;
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+        }
+
+        .carousel-container:fullscreen .carousel {
+            height: 100vh;
+            padding-bottom: 0;
+        }
+
+        .carousel-container:fullscreen .carousel-media {
+            object-fit: contain;
+        }
+
+        .carousel-container:fullscreen .carousel-controls {
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+            padding: 2rem;
+        }
+
+        .carousel-container:fullscreen .carousel-prev,
+        .carousel-container:fullscreen .carousel-next,
+        .carousel-container:fullscreen .fullscreen-btn {
+            width: 50px;
+            height: 50px;
+        }
+
+        .carousel-container:fullscreen .carousel-prev i,
+        .carousel-container:fullscreen .carousel-next i,
+        .carousel-container:fullscreen .fullscreen-btn i {
+            font-size: 1.5rem;
+        }
+
+        .carousel-container:fullscreen .carousel-dot {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Nascondi i controlli quando non in hover in modalità schermo intero */
+        .carousel-container:fullscreen .carousel-controls {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .carousel-container:fullscreen:hover .carousel-controls {
+            opacity: 1;
+        }
+
+    /* Timer Styles */
+    .timer-overlay {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.8));
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 0.8rem 1.5rem;
+        font-size: 1.4rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-radius: 30px;
+        z-index: 1000;
+    }
+
+    .timer-content {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+
+    .timer-overlay i {
+        font-size: 1.6rem;
+        color: var(--primary-color);
+    }
+
+    #timerText {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        min-width: 2.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .timer-warning {
+        color: #ff6b6b;
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
+    .stop-totem-btn {
+        background: none;
+        border: none;
+        color: #ff6b6b;
+        cursor: pointer;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        border-radius: 50%;
+    }
+
+    .stop-totem-btn i {
+        font-size: 1.8rem;
+        color: #ff6b6b;
+    }
+
+    .stop-totem-btn:hover {
+        background: rgba(255, 107, 107, 0.1);
+        transform: scale(1.1);
+    }
+
+    .stop-totem-btn:active {
+        transform: scale(0.95);
+    }
+
+    .stop-totem-btn::after {
+        content: 'Ferma il loop';
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .stop-totem-btn:hover::after {
+        opacity: 1;
+        visibility: visible;
+        bottom: -35px;
+    }
     </style>
 </body>
 </html> 

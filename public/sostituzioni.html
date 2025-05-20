@@ -105,12 +105,12 @@
         // Function to format time slot
         function getTimeSlotText(slot) {
             const timeSlots = {
-                1: "8:00-9:00",
-                2: "9:00-10:00",
-                3: "10:00-11:00",
-                4: "11:00-12:00",
-                5: "12:00-13:00",
-                6: "13:00-14:00"
+                1: "08:00 - 09:00",
+                2: "09:00 - 10:00",
+                3: "10:00 - 11:00",
+                4: "11:00 - 12:00",
+                5: "12:00 - 13:00",
+                6: "13:00 - 14:00"
             };
             return timeSlots[slot] || `Ora ${slot}`;
         }
@@ -130,7 +130,11 @@
                 const currentDate = new Date(date);
                 days.push({
                     date: currentDate.toISOString().split('T')[0],
-                    label: currentDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'short' })
+                    label: currentDate.toLocaleDateString('it-IT', { 
+                        weekday: 'long', 
+                        day: 'numeric', 
+                        month: 'long' 
+                    })
                 });
                 date.setDate(date.getDate() + 1);
             }
@@ -266,16 +270,196 @@
             });
         }
 
-        // Initial load of substitutions with default location (TO1)
+        // Initial load of substitutions with location from URL
         document.getElementById('dateFilter').value = today;
-        loadSubstitutions(today, 'TO1');
+        const urlParams = new URLSearchParams(window.location.search);
+        const locationParam = urlParams.get('location') || 'TO1'; // Fallback a TO1 solo se non c'è parametro
+        document.getElementById('locationFilter').value = locationParam;
+        loadSubstitutions(today, locationParam);
+
+        // Aggiungi auto-refresh ogni 5 minuti
+        setInterval(() => {
+            const currentDate = document.getElementById('dateFilter').value;
+            const currentLocation = document.getElementById('locationFilter').value;
+            loadSubstitutions(currentDate, currentLocation);
+        }, 300000); // 5 minuti
+    </script>
+
+    <script>
+    // Totem Evolution Functions
+    let totemInterval = null;
+    let currentPage = '';
+    let currentLocation = '';
+    let pageTimer = null;
+    let remainingTime = 10; // 10 seconds for testing
+    let isTotemActive = false;
+
+    // Funzione per salvare lo stato del totem
+    function saveTotemState(location, page) {
+        sessionStorage.setItem('totemActive', 'true');
+        sessionStorage.setItem('totemLocation', location);
+        sessionStorage.setItem('totemPage', page);
+    }
+
+    // Funzione per rimuovere lo stato del totem
+    function clearTotemState() {
+        sessionStorage.removeItem('totemActive');
+        sessionStorage.removeItem('totemLocation');
+        sessionStorage.removeItem('totemPage');
+    }
+
+    function createTimerOverlay() {
+        // Rimuovi eventuali overlay esistenti
+        const existingOverlay = document.querySelector('.timer-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'timer-overlay';
+        overlay.innerHTML = `
+            <div class="timer-content">
+                <i class="fas fa-clock"></i>
+                <span id="timerText">10</span>
+            </div>
+            <button onclick="stopTotemLoop()" class="stop-totem-btn" title="Ferma il loop">
+                <i class="fas fa-stop-circle"></i>
+            </button>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function stopTotemLoop() {
+        if (pageTimer) {
+            clearInterval(pageTimer);
+            pageTimer = null;
+        }
+        
+        // Rimuovi il timer overlay
+        const overlay = document.querySelector('.timer-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        
+        // Pulisci lo stato del totem
+        clearTotemState();
+        isTotemActive = false;
+        
+        // Torna alla home
+        window.location.href = 'index.html';
+    }
+
+    function updateTimer() {
+        const seconds = remainingTime;
+        const timerText = document.getElementById('timerText');
+        if (timerText) {
+            // Aggiungi una classe per l'animazione quando mancano pochi secondi
+            if (seconds <= 3) {
+                timerText.classList.add('timer-warning');
+            } else {
+                timerText.classList.remove('timer-warning');
+            }
+            timerText.textContent = seconds.toString().padStart(2, '0');
+        }
+    }
+
+    function startTimer() {
+        remainingTime = 10;
+        updateTimer();
+        
+        if (pageTimer) {
+            clearInterval(pageTimer);
+        }
+        
+        pageTimer = setInterval(() => {
+            remainingTime--;
+            updateTimer();
+            
+            if (remainingTime <= 0) {
+                switchPage();
+            }
+        }, 1000);
+    }
+
+    function switchPage() {
+        const pages = {
+            'montecuccoli': {
+                main: 'playlist.html',
+                subs: 'sostituzioni.html?location=TO1'
+            },
+            'luini': {
+                main: 'vialuini.html',
+                subs: 'sostituzioni.html?location=TO3'
+            },
+            'sansovino': {
+                main: 'viasansovino.html',
+                subs: 'sostituzioni.html?location=TO2'
+            }
+        };
+
+        const locationPages = pages[currentLocation];
+        
+        if (currentPage === locationPages.main) {
+            currentPage = locationPages.subs;
+            saveTotemState(currentLocation, currentPage);
+            window.location.href = locationPages.subs;
+        } else {
+            currentPage = locationPages.main;
+            saveTotemState(currentLocation, currentPage);
+            window.location.href = locationPages.main;
+        }
+    }
+
+    // Funzione per inizializzare il totem su qualsiasi pagina
+    function initializeTotem() {
+        const isActive = sessionStorage.getItem('totemActive') === 'true';
+        if (!isActive) return;
+
+        const location = sessionStorage.getItem('totemLocation');
+        const page = sessionStorage.getItem('totemPage');
+        
+        if (location && page) {
+            currentLocation = location;
+            currentPage = page;
+            isTotemActive = true;
+            createTimerOverlay();
+            startTimer();
+        }
+    }
+
+    // Check if we're in a totem loop
+    window.addEventListener('load', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const location = urlParams.get('location');
+        
+        if (location) {
+            // Determiniamo la sede in base al parametro location
+            const locationMap = {
+                'TO1': 'montecuccoli',
+                'TO2': 'sansovino',
+                'TO3': 'luini'
+            };
+            
+            currentLocation = locationMap[location];
+            currentPage = 'sostituzioni.html';
+            initializeTotem();
+        }
+    });
+
+    // Pulisci lo stato quando si chiude la finestra
+    window.addEventListener('beforeunload', () => {
+        if (!isTotemActive) {
+            clearTotemState();
+        }
+    });
     </script>
 
     <style>
         /* Base styles */
         .substitutions-container {
-            padding: 1rem;
-            height: calc(100vh - 200px); /* Adjust based on header and footer height */
+            padding: 2rem;
+            min-height: 500px;
             display: flex;
             flex-direction: column;
         }
@@ -284,15 +468,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .substitutions-header h2 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: var(--primary-color);
         }
 
         .filters {
             display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
+            gap: 2rem;
             align-items: center;
         }
 
@@ -300,46 +490,45 @@
         .date-filter {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 1rem;
+        }
+
+        .location-filter label,
+        .date-filter label {
+            font-size: 1rem;
+            font-weight: 500;
         }
 
         .location-filter select,
         .date-filter input {
-            padding: 0.5rem;
+            padding: 0.5rem 1rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
+            border-radius: 6px;
             background: rgba(255, 255, 255, 0.1);
             color: var(--text-color);
-            min-width: 100px;
-        }
-
-        .location-filter select {
+            font-size: 1rem;
+            min-width: 120px;
             cursor: pointer;
-        }
-
-        .location-filter select option {
-            background: var(--background-color);
-            color: var(--text-color);
         }
 
         .table-container {
             flex: 1;
             overflow: auto;
-            margin-top: 1rem;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
+            border-radius: 12px;
             position: relative;
         }
 
         .substitutions-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             table-layout: fixed;
         }
 
         .substitutions-table th,
         .substitutions-table td {
-            padding: 0.75rem;
+            padding: 1rem;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
             vertical-align: top;
@@ -360,6 +549,7 @@
             left: 0;
             z-index: 20;
             background: rgba(255, 255, 255, 0.15);
+            min-width: 100px;
         }
 
         .substitutions-table td:first-child {
@@ -369,6 +559,23 @@
             background: rgba(255, 255, 255, 0.05);
             text-align: left;
             font-weight: 500;
+        }
+
+        .day-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.5rem;
+        }
+
+        .day-name {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .day-date {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .time-slot {
@@ -382,40 +589,25 @@
             color: var(--primary-color);
         }
 
-        .has-substitution {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
         .substitution-info {
             text-align: left;
-            font-size: 0.9rem;
-            padding: 0.5rem;
+            padding: 0.8rem;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            margin-bottom: 0.8rem;
         }
 
         .class-info {
             color: var(--primary-color);
-            font-weight: 500;
-            margin-bottom: 0.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        .class-info i {
-            color: var(--primary-color);
-        }
-
-        .substitution-divider {
-            border: none;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin: 0.5rem 0;
-        }
-
         .subject {
-            margin: 0.25rem 0;
+            margin: 0.5rem 0;
             color: var(--text-color);
             display: flex;
             align-items: center;
@@ -425,9 +617,8 @@
         .teachers {
             display: flex;
             flex-direction: column;
-            gap: 0.25rem;
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
         }
 
         .replaced, .substitute {
@@ -444,6 +635,12 @@
             color: #51cf66;
         }
 
+        .substitution-divider {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 0.8rem 0;
+        }
+
         .no-substitution {
             color: rgba(255, 255, 255, 0.3);
         }
@@ -454,98 +651,82 @@
 
         .no-data {
             text-align: center;
-            padding: 2rem;
+            padding: 3rem;
             color: var(--text-color);
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            width: 80%;
+            max-width: 500px;
         }
 
         .no-data i {
-            font-size: 2rem;
+            font-size: 2.5rem;
             color: var(--primary-color);
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
         }
 
-        .day-header {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-            padding: 0.5rem;
+        .no-data p {
+            font-size: 1.2rem;
+            margin: 0;
         }
 
-        .day-name {
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-
-        .day-date {
-            font-size: 0.8em;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Media Queries for different screen sizes and orientations */
+        /* Responsive styles */
         @media screen and (max-width: 1200px) {
-            .substitutions-table th,
-            .substitutions-table td {
-                padding: 0.6rem;
+            .substitutions-container {
+                padding: 1.5rem;
             }
 
-            .substitution-info {
-                font-size: 0.85rem;
-                padding: 0.4rem;
+            .substitutions-header {
+                margin-bottom: 1.5rem;
             }
 
-            .day-header {
-                padding: 0.4rem;
-            }
-
-            .day-date {
-                font-size: 0.75em;
+            .filters {
+                gap: 1.5rem;
             }
         }
 
         @media screen and (max-width: 992px) {
             .substitutions-container {
-                height: calc(100vh - 180px);
+                padding: 1rem;
             }
 
-            .substitutions-table th,
-            .substitutions-table td {
-                padding: 0.5rem;
+            .substitutions-header {
+                flex-direction: column;
+                gap: 1rem;
             }
 
-            .substitution-info {
-                font-size: 0.8rem;
-                padding: 0.3rem;
+            .filters {
+                width: 100%;
+                justify-content: space-between;
             }
 
-            .teachers {
-                font-size: 0.75rem;
+            .location-filter,
+            .date-filter {
+                flex: 1;
             }
 
-            .substitutions-table td.has-substitution {
-                min-width: 180px;
+            .location-filter select,
+            .date-filter input {
+                width: 100%;
             }
         }
 
         @media screen and (max-width: 768px) {
             .substitutions-container {
-                height: calc(100vh - 160px);
-                padding: 0.5rem;
+                padding: 0.8rem;
             }
 
             .substitutions-header {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 0.5rem;
+                margin-bottom: 1rem;
             }
 
             .filters {
                 flex-direction: column;
-                width: 100%;
-                gap: 0.5rem;
+                gap: 1rem;
             }
 
             .location-filter,
@@ -553,33 +734,19 @@
                 width: 100%;
             }
 
-            .location-filter select,
-            .date-filter input {
-                width: 100%;
-                min-width: unset;
-            }
-
             .substitutions-table th,
             .substitutions-table td {
-                padding: 0.4rem;
-                font-size: 0.8rem;
+                padding: 0.8rem;
+                font-size: 0.9rem;
             }
 
             .substitution-info {
-                font-size: 0.75rem;
-                padding: 0.25rem;
-            }
-
-            .teachers {
-                font-size: 0.7rem;
-            }
-
-            .time-slot {
-                font-size: 0.8rem;
+                padding: 0.6rem;
+                font-size: 0.9rem;
             }
 
             .day-header {
-                padding: 0.3rem;
+                padding: 0.4rem;
             }
 
             .day-name {
@@ -587,40 +754,7 @@
             }
 
             .day-date {
-                font-size: 0.7em;
-            }
-
-            .substitutions-table td.has-substitution {
-                min-width: 150px;
-            }
-        }
-
-        /* Landscape orientation specific styles */
-        @media screen and (orientation: landscape) and (max-height: 600px) {
-            .substitutions-container {
-                height: calc(100vh - 140px);
-            }
-
-            .substitutions-header {
-                margin-bottom: 0.5rem;
-            }
-
-            .substitutions-table th,
-            .substitutions-table td {
-                padding: 0.3rem;
-            }
-
-            .substitution-info {
-                font-size: 0.7rem;
-            }
-
-            .teachers {
-                font-size: 0.65rem;
-                gap: 0.15rem;
-            }
-
-            .subject {
-                margin-bottom: 0.25rem;
+                font-size: 0.8em;
             }
         }
 
@@ -662,6 +796,103 @@
             .substitute i {
                 color: #000;
             }
+        }
+
+        /* Timer Styles */
+        .timer-overlay {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.8rem 1.5rem;
+            font-size: 1.4rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-radius: 30px;
+            z-index: 1000;
+        }
+
+        .timer-content {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .timer-overlay i {
+            font-size: 1.6rem;
+            color: var(--primary-color);
+        }
+
+        #timerText {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            min-width: 2.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .timer-warning {
+            color: #ff6b6b;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .stop-totem-btn {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border-radius: 50%;
+        }
+
+        .stop-totem-btn i {
+            font-size: 1.8rem;
+            color: #ff6b6b;
+        }
+
+        .stop-totem-btn:hover {
+            background: rgba(255, 107, 107, 0.1);
+            transform: scale(1.1);
+        }
+
+        .stop-totem-btn:active {
+            transform: scale(0.95);
+        }
+
+        .stop-totem-btn::after {
+            content: 'Ferma il loop';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stop-totem-btn:hover::after {
+            opacity: 1;
+            visibility: visible;
+            bottom: -35px;
         }
     </style>
 </body>

@@ -132,6 +132,278 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Totem Evolution Styles */
+        .totem-evolution {
+            background: linear-gradient(135deg, var(--primary-color), #2c3e50);
+            transition: transform 0.3s ease;
+        }
+
+        .totem-evolution:hover {
+            transform: scale(1.05);
+        }
+
+        .totem-evolution .menu-icon i {
+            animation: spin 4s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+
+        .location-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .location-btn {
+            padding: 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .location-btn i {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+
+        .location-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .close-btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary-color);
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0 auto;
+        }
+
+        .close-btn:hover {
+            background: #2c3e50;
+            transform: translateY(-2px);
+        }
+
+        /* Timer Styles */
+        .timer-overlay {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timer-overlay i {
+            color: var(--primary-color);
+        }
+
+        /* Totem Evolution Section Styles */
+        .totem-evolution-section {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .totem-evolution-btn {
+            background: linear-gradient(135deg, var(--primary-color), #2c3e50) !important;
+            color: white !important;
+            position: relative;
+            overflow: hidden;
+            padding: 2rem !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .totem-evolution-btn i {
+            font-size: 2.5rem !important;
+            color: white !important;
+            animation: spin 4s linear infinite;
+        }
+
+        .totem-evolution-btn:hover {
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        .totem-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Aggiorna gli stili del modal per il totem */
+        .modal-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .location-btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem;
+        }
+
+        .location-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Aggiorna gli stili del timer */
+        .timer-overlay {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.8rem 1.5rem;
+            font-size: 1.4rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-radius: 30px;
+        }
+
+        .timer-content {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .timer-overlay i {
+            font-size: 1.6rem;
+            color: var(--primary-color);
+        }
+
+        #timerText {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            min-width: 2.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .timer-warning {
+            color: #ff6b6b;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .stop-totem-btn {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border-radius: 50%;
+        }
+
+        .stop-totem-btn i {
+            font-size: 1.8rem;
+            color: #ff6b6b;
+        }
+
+        .stop-totem-btn:hover {
+            background: rgba(255, 107, 107, 0.1);
+            transform: scale(1.1);
+        }
+
+        .stop-totem-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Aggiungi stili per il tooltip */
+        .stop-totem-btn::after {
+            content: 'Ferma il loop';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stop-totem-btn:hover::after {
+            opacity: 1;
+            visibility: visible;
+            bottom: -35px;
+        }
     </style>
 </head>
 <body>
@@ -144,8 +416,9 @@
             <div class="logo-container">
                 <img src="https://www.istitutoboselli.edu.it/wp-content/uploads/2024/04/logo-boselli-ritaglio-1.png" alt="Logo IIS P.Boselli" class="school-logo">
             </div>
-            <h1>IIS P.Boselli</h1>
-            <div class="subtitle">Seleziona la sezione desiderata</div>
+            <i class="fas fa-school music-icon"></i>
+            <h1>Totem Navigation</h1>
+            <div class="subtitle">IIS Paolo Boselli</div>
         </div>
 
         <div class="sections-container">
@@ -213,12 +486,262 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Sezione Totem Evolution -->
+            <div class="section totem-evolution-section">
+                <h2 class="section-title">Totem Evolution</h2>
+                <div class="nav-grid">
+                    <button onclick="startTotemEvolution()" class="nav-item totem-evolution-btn">
+                        <i class="fas fa-sync-alt"></i>
+                        Avvia Loop Automatico
+                        <span class="totem-description">Gestione automatica delle pagine per il totem</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Totem Evolution Modal -->
+        <div id="totemEvolutionModal" class="modal" style="display: none;">
+            <div class="modal-content glass-effect">
+                <h2>Seleziona la Sede</h2>
+                <div class="location-buttons">
+                    <button onclick="startTotemLoop('montecuccoli')" class="location-btn">
+                        <i class="fas fa-building"></i>
+                        Via Montecuccoli
+                    </button>
+                    <button onclick="startTotemLoop('luini')" class="location-btn">
+                        <i class="fas fa-building"></i>
+                        Via Luini
+                    </button>
+                    <button onclick="startTotemLoop('sansovino')" class="location-btn">
+                        <i class="fas fa-building"></i>
+                        Via Sansovino
+                    </button>
+                </div>
+                <button onclick="closeTotemModal()" class="close-btn">
+                    <i class="fas fa-times"></i>
+                    Chiudi
+                </button>
+            </div>
         </div>
 
         <footer class="footer glass-effect">
-            <p>© 2024 Totem | IIS P.Boselli Torino | Tutti i diritti riservati</p>
+            <p>© 2024 Totem Navigation | IIS P.Boselli Torino | Tutti i diritti riservati</p>
             <p class="footer-sub">Progetto sviluppato presso l'Istituto di Istruzione Superiore Paolo Boselli di Torino</p>
         </footer>
     </div>
+
+    <script>
+    // Totem Evolution Functions
+    let totemInterval = null;
+    let currentPage = '';
+    let currentLocation = '';
+    let pageTimer = null;
+    let remainingTime = 10; // 10 seconds for testing
+    let isTotemActive = false; // Nuovo stato per tracciare se il totem è attivo
+
+    // Funzione per salvare lo stato del totem
+    function saveTotemState(location, page) {
+        sessionStorage.setItem('totemActive', 'true');
+        sessionStorage.setItem('totemLocation', location);
+        sessionStorage.setItem('totemPage', page);
+    }
+
+    // Funzione per rimuovere lo stato del totem
+    function clearTotemState() {
+        sessionStorage.removeItem('totemActive');
+        sessionStorage.removeItem('totemLocation');
+        sessionStorage.removeItem('totemPage');
+    }
+
+    function startTotemEvolution() {
+        document.getElementById('totemEvolutionModal').style.display = 'flex';
+    }
+
+    function closeTotemModal() {
+        document.getElementById('totemEvolutionModal').style.display = 'none';
+    }
+
+    function createTimerOverlay() {
+        // Rimuovi eventuali overlay esistenti
+        const existingOverlay = document.querySelector('.timer-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'timer-overlay';
+        overlay.innerHTML = `
+            <div class="timer-content">
+                <i class="fas fa-clock"></i>
+                <span id="timerText">10</span>
+            </div>
+            <button onclick="stopTotemLoop()" class="stop-totem-btn" title="Ferma il loop">
+                <i class="fas fa-stop-circle"></i>
+            </button>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function stopTotemLoop() {
+        if (pageTimer) {
+            clearInterval(pageTimer);
+            pageTimer = null;
+        }
+        
+        // Rimuovi il timer overlay
+        const overlay = document.querySelector('.timer-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        
+        // Pulisci lo stato del totem
+        clearTotemState();
+        isTotemActive = false;
+        
+        // Torna alla home
+        window.location.href = 'index.html';
+    }
+
+    function updateTimer() {
+        const seconds = remainingTime;
+        const timerText = document.getElementById('timerText');
+        if (timerText) {
+            // Aggiungi una classe per l'animazione quando mancano pochi secondi
+            if (seconds <= 3) {
+                timerText.classList.add('timer-warning');
+            } else {
+                timerText.classList.remove('timer-warning');
+            }
+            timerText.textContent = seconds.toString().padStart(2, '0');
+        }
+    }
+
+    function startTimer() {
+        remainingTime = 10;
+        updateTimer();
+        
+        if (pageTimer) {
+            clearInterval(pageTimer);
+        }
+        
+        pageTimer = setInterval(() => {
+            remainingTime--;
+            updateTimer();
+            
+            if (remainingTime <= 0) {
+                switchPage();
+            }
+        }, 1000);
+    }
+
+    function switchPage() {
+        const pages = {
+            'montecuccoli': {
+                main: 'playlist.html',
+                subs: 'sostituzioni.html?location=TO1'
+            },
+            'luini': {
+                main: 'vialuini.html',
+                subs: 'sostituzioni.html?location=TO3'
+            },
+            'sansovino': {
+                main: 'viasansovino.html',
+                subs: 'sostituzioni.html?location=TO2'
+            }
+        };
+
+        const locationPages = pages[currentLocation];
+        
+        if (currentPage === locationPages.main) {
+            currentPage = locationPages.subs;
+            saveTotemState(currentLocation, currentPage);
+            window.location.href = locationPages.subs;
+        } else {
+            currentPage = locationPages.main;
+            saveTotemState(currentLocation, currentPage);
+            window.location.href = locationPages.main;
+        }
+    }
+
+    function startTotemLoop(location) {
+        currentLocation = location;
+        currentPage = '';
+        isTotemActive = true;
+        
+        // Salva lo stato iniziale
+        const pages = {
+            'montecuccoli': 'playlist.html',
+            'luini': 'vialuini.html',
+            'sansovino': 'viasansovino.html'
+        };
+        
+        currentPage = pages[location];
+        saveTotemState(location, currentPage);
+        
+        // Crea il timer overlay e avvia il loop
+        createTimerOverlay();
+        window.location.href = pages[location];
+    }
+
+    // Funzione per inizializzare il totem su qualsiasi pagina
+    function initializeTotem() {
+        const isActive = sessionStorage.getItem('totemActive') === 'true';
+        if (!isActive) return;
+
+        const location = sessionStorage.getItem('totemLocation');
+        const page = sessionStorage.getItem('totemPage');
+        
+        if (location && page) {
+            currentLocation = location;
+            currentPage = page;
+            isTotemActive = true;
+            createTimerOverlay();
+            startTimer();
+        }
+    }
+
+    // Check if we're in a totem loop
+    window.addEventListener('load', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const location = urlParams.get('location');
+        
+        if (location) {
+            // We're in the substitutions page
+            currentLocation = Object.entries({
+                'TO1': 'montecuccoli',
+                'TO2': 'sansovino',
+                'TO3': 'luini'
+            }).find(([code, name]) => code === location)?.[1];
+            
+            if (currentLocation) {
+                currentPage = 'sostituzioni.html';
+                initializeTotem();
+            }
+        } else if (window.location.pathname.includes('playlist.html') || 
+                   window.location.pathname.includes('vialuini.html') || 
+                   window.location.pathname.includes('viasansovino.html')) {
+            // We're in one of the main pages
+            currentLocation = Object.entries({
+                'playlist.html': 'montecuccoli',
+                'vialuini.html': 'luini',
+                'viasansovino.html': 'sansovino'
+            }).find(([page, name]) => window.location.pathname.includes(page))?.[1];
+            
+            if (currentLocation) {
+                currentPage = window.location.pathname.split('/').pop();
+                initializeTotem();
+            }
+        }
+    });
+
+    // Pulisci lo stato quando si chiude la finestra
+    window.addEventListener('beforeunload', () => {
+        if (!isTotemActive) {
+            clearTotemState();
+        }
+    });
+    </script>
 </body>
 </html> 
