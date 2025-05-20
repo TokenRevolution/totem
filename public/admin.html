@@ -6,6 +6,7 @@
     <title>Admin Panel - Totem</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
     <div class="container glass-effect">
@@ -34,20 +35,47 @@
             <div class="admin-section glass-effect">
                 <h2><i class="fas fa-images"></i> Gestione Carosello</h2>
                 <div class="admin-controls">
-                    <div class="location-selector">
-                        <label for="carouselLocation">Seleziona Sede:</label>
-                        <select id="carouselLocation" onchange="loadCarouselContent()">
-                            <option value="viasansovino">Via Sansovino</option>
-                            <option value="vialuini">Via Luini</option>
-                        </select>
+                    <div class="filters-container">
+                        <div class="location-selector">
+                            <label for="carouselLocation">Seleziona Sede:</label>
+                            <select id="carouselLocation" onchange="loadCarouselContent()">
+                                <option value="viasansovino">Via Sansovino</option>
+                                <option value="vialuini">Via Luini</option>
+                            </select>
+                        </div>
+                        <div class="content-filters">
+                            <div class="filter-group">
+                                <label for="contentTypeFilter">Tipo Contenuto:</label>
+                                <select id="contentTypeFilter" onchange="filterCarouselContent()">
+                                    <option value="all">Tutti</option>
+                                    <option value="image">Immagini</option>
+                                    <option value="video">Video</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="sortOrder">Ordina per:</label>
+                                <select id="sortOrder" onchange="filterCarouselContent()">
+                                    <option value="order">Numero d'ordine</option>
+                                    <option value="date">Data di caricamento</option>
+                                    <option value="title">Titolo</option>
+                                </select>
+                            </div>
+                            <div class="search-group">
+                                <input type="text" id="contentSearch" placeholder="Cerca per titolo..." onkeyup="filterCarouselContent()">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
                     </div>
                     <div class="action-buttons">
                         <button onclick="addCarouselItem()" class="admin-button-small">
                             <i class="fas fa-plus"></i> Nuovo Contenuto
                         </button>
+                        <button onclick="reorderCarouselItems()" class="admin-button-small">
+                            <i class="fas fa-sort"></i> Riordina Contenuti
+                        </button>
                     </div>
                 </div>
-                <div id="carouselItemsList" class="carousel-items-list">
+                <div id="carouselItemsList" class="carousel-items-grid">
                     <!-- Carousel items will be loaded here -->
                 </div>
             </div>
@@ -306,39 +334,43 @@
             remove
         } from "firebase/database";
         import { getAuth, signOut } from "firebase/auth";
-        import { 
-            getStorage, 
-            ref as storageRef, 
-            uploadBytes, 
-            getDownloadURL,
-            deleteObject
-        } from "firebase/storage";
 
         // Initialize Firebase services
         const db = getDatabase();
         const auth = getAuth();
-        const storage = getStorage();
 
-        // Utility function for time slots
-        function getTimeSlotText(slot) {
-            const timeSlots = {
-                1: "1° ora (8:00-9:00)",
-                2: "2° ora (9:00-10:00)",
-                3: "3° ora (10:00-11:00)",
-                4: "4° ora (11:00-12:00)",
-                5: "5° ora (12:00-13:00)",
-                6: "6° ora (13:00-14:00)",
-                7: "7° ora (14:00-15:00)",
-                8: "8° ora (15:00-16:00)",
-                9: "9° ora (16:00-17:00)",
-                10: "10° ora (17:00-18:00)",
-                11: "11° ora (18:00-19:00)",
-                12: "12° ora (19:00-20:00)",
-                13: "13° ora (20:00-21:00)",
-                14: "14° ora (21:00-22:00)",
-                15: "15° ora (22:00-23:00)"
-            };
-            return timeSlots[slot] || `Ora ${slot}`;
+        // Definisci items come variabile globale
+        let items = [];
+        let location = 'viasansovino'; // Valore di default
+
+        // Aggiungi variabili globali per le sostituzioni
+        let substitutions = [];
+        let filteredSubstitutions = [];
+
+        // Utility function to convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Verifica il tipo di file
+                    const fileType = file.type;
+                    console.log('Tipo di file caricato:', fileType); // Debug log
+                    
+                    if (fileType.startsWith('video/')) {
+                        // Per i video, assicuriamoci di usare il tipo corretto
+                        const base64Data = reader.result;
+                        console.log('Video convertito in base64, lunghezza:', base64Data.length); // Debug log
+                        resolve(base64Data);
+                    } else if (fileType.startsWith('image/')) {
+                        // Per le immagini
+                        resolve(reader.result);
+                    } else {
+                        reject(new Error('Tipo di file non supportato'));
+                    }
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
         }
 
         // Check authentication state
@@ -407,16 +439,42 @@
             }
 
             try {
-                // Upload file to Firebase Storage
-                const fileRef = storageRef(storage, `carousel/${location}/${Date.now()}_${file.name}`);
-                await uploadBytes(fileRef, file);
-                const url = await getDownloadURL(fileRef);
+                // Verifica la corrispondenza tra tipo selezionato e tipo di file
+                const fileType = file.type;
+                if ((type === 'video' && !fileType.startsWith('video/')) ||
+                    (type === 'image' && !fileType.startsWith('image/'))) {
+                    alert('Il tipo di file non corrisponde al tipo selezionato');
+                    return;
+                }
+
+                console.log('Caricamento file:', {
+                    nome: file.name,
+                    tipo: file.type,
+                    dimensione: file.size
+                }); // Debug log
+
+                // Convert file to base64
+                const base64Data = await fileToBase64(file);
+                console.log('File convertito in base64, tipo:', type); // Debug log
+
+                // Get current items to determine next order number
+                const carouselRef = ref(db, `carousel/${location}`);
+                const snapshot = await get(carouselRef);
+                let nextOrder = 1;
+                
+                if (snapshot.exists()) {
+                    const items = snapshot.val();
+                    const orders = Object.values(items).map(item => item.order || 0);
+                    nextOrder = Math.max(...orders) + 1;
+                }
 
                 // Save item data to Realtime Database
                 const itemData = {
                     type,
                     title,
-                    url,
+                    data: base64Data,
+                    order: nextOrder,
+                    fileType: file.type, // Aggiungiamo il tipo di file originale
                     updatedAt: new Date().toISOString()
                 };
 
@@ -433,20 +491,15 @@
                 showSuccess('Contenuto salvato con successo');
             } catch (error) {
                 console.error('Error saving carousel item:', error);
-                showError('Errore durante il salvataggio del contenuto');
+                showError('Errore durante il salvataggio del contenuto: ' + error.message);
             }
         };
 
-        window.deleteCarouselItem = async (location, itemId, url) => {
+        window.deleteCarouselItem = async (location, itemId) => {
             if (confirm('Sei sicuro di voler eliminare questo contenuto?')) {
                 try {
-                    // Delete file from Storage
-                    const fileRef = storageRef(storage, url);
-                    await deleteObject(fileRef);
-
                     // Delete item from Database
                     await remove(ref(db, `carousel/${location}/${itemId}`));
-                    
                     loadCarouselContent();
                     showSuccess('Contenuto eliminato con successo');
                 } catch (error) {
@@ -457,14 +510,18 @@
         };
 
         window.loadCarouselContent = () => {
-            const location = document.getElementById('carouselLocation').value;
+            location = document.getElementById('carouselLocation').value;
             const itemsList = document.getElementById('carouselItemsList');
+            
+            console.log('Caricamento contenuti per:', location); // Debug log
             
             const carouselRef = ref(db, `carousel/${location}`);
             onValue(carouselRef, (snapshot) => {
+                items = []; // Reset items array
                 itemsList.innerHTML = '';
                 
                 if (!snapshot.exists()) {
+                    console.log('Nessun contenuto trovato'); // Debug log
                     itemsList.innerHTML = `
                         <div class="no-data">
                             <i class="fas fa-images"></i>
@@ -474,33 +531,25 @@
                     return;
                 }
 
+                console.log('Contenuti trovati:', snapshot.size); // Debug log
+                
                 snapshot.forEach((childSnapshot) => {
                     const item = childSnapshot.val();
-                    const itemElement = document.createElement('div');
-                    itemElement.className = 'carousel-item-card';
-                    
-                    const previewContent = item.type === 'image' 
-                        ? `<img src="${item.url}" alt="${item.title}" class="carousel-item-preview">`
-                        : `<video src="${item.url}" class="carousel-item-preview" muted></video>`;
-                    
-                    itemElement.innerHTML = `
-                        ${previewContent}
-                        <div class="carousel-item-info">
-                            <div class="carousel-item-title">${item.title}</div>
-                            <div class="carousel-item-type">
-                                <i class="fas fa-${item.type === 'image' ? 'image' : 'video'}"></i>
-                                ${item.type === 'image' ? 'Immagine' : 'Video'}
-                            </div>
-                        </div>
-                        <div class="carousel-item-actions">
-                            <button onclick="deleteCarouselItem('${location}', '${childSnapshot.key}', '${item.url}')" class="delete-button">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
-                    
-                    itemsList.appendChild(itemElement);
+                    item.id = childSnapshot.key;
+                    items.push(item);
+                    console.log('Item caricato:', item); // Debug log
                 });
+                
+                console.log('Totale items caricati:', items.length); // Debug log
+                filterCarouselContent();
+            }, (error) => {
+                console.error('Errore nel caricamento dei contenuti:', error);
+                itemsList.innerHTML = `
+                    <div class="no-data error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Errore nel caricamento dei contenuti</p>
+                    </div>
+                `;
             });
         };
 
@@ -518,6 +567,12 @@
 
             const preview = document.getElementById('filePreview');
             preview.innerHTML = '';
+            
+            console.log('File selezionato:', {
+                nome: file.name,
+                tipo: file.type,
+                dimensione: file.size
+            }); // Debug log
 
             if (file.type.startsWith('image/')) {
                 const img = document.createElement('img');
@@ -527,7 +582,11 @@
                 const video = document.createElement('video');
                 video.src = URL.createObjectURL(file);
                 video.controls = true;
+                video.style.maxWidth = '100%';
+                video.style.maxHeight = '200px';
                 preview.appendChild(video);
+            } else {
+                preview.innerHTML = '<p>Tipo di file non supportato</p>';
             }
         });
 
@@ -610,27 +669,29 @@
                 if (substitutionId) {
                     // Update existing substitution
                     await update(ref(db, `substitutions/${substitutionId}`), substitution);
+                    showSuccess('Sostituzione aggiornata con successo');
                 } else {
                     // Add new substitution
                     await push(ref(db, 'substitutions'), substitution);
+                    showSuccess('Sostituzione aggiunta con successo');
                 }
                 closeSubstitutionModal();
-                loadSubstitutions();
+                loadSubstitutions(); // Ricarica tutte le sostituzioni
             } catch (error) {
                 console.error('Error saving substitution:', error);
-                alert('Errore durante il salvataggio della sostituzione');
+                showError('Errore durante il salvataggio della sostituzione: ' + error.message);
             }
         };
 
         window.deleteSubstitution = async (substitutionId) => {
             if (confirm('Sei sicuro di voler eliminare questa sostituzione?')) {
                 try {
-                    await deleteSubstitution(substitutionId);
-                    loadSubstitutions();
+                    await remove(ref(db, `substitutions/${substitutionId}`));
                     showSuccess('Sostituzione eliminata con successo');
+                    loadSubstitutions(); // Ricarica tutte le sostituzioni
                 } catch (error) {
                     console.error('Error deleting substitution:', error);
-                    showError('Errore nell\'eliminazione della sostituzione');
+                    showError('Errore durante l\'eliminazione della sostituzione: ' + error.message);
                 }
             }
         };
@@ -639,12 +700,14 @@
         window.filterAdminSubstitutions = () => {
             const selectedLocation = document.getElementById('adminLocationFilter').value;
             const selectedDate = document.getElementById('adminDateFilter').value;
-            loadSubstitutions(selectedLocation, selectedDate);
+            console.log('Filtro sostituzioni admin:', { location: selectedLocation, date: selectedDate }); // Debug log
+            filterSubstitutions(selectedLocation, selectedDate);
         };
 
         // Function to load and display substitutions with filters
         function loadSubstitutions(location = 'all', date = '') {
             console.log('Loading substitutions with filters:', { location, date }); // Debug log
+            
             const substitutionsRef = ref(db, 'substitutions');
             const substitutionsQuery = query(substitutionsRef, orderByChild('date'));
 
@@ -653,92 +716,28 @@
                 const substitutionsList = document.getElementById('substitutionsList');
                 substitutionsList.innerHTML = '';
 
-                const substitutions = [];
-                snapshot.forEach((childSnapshot) => {
-                    const substitution = childSnapshot.val();
-                    console.log('Processing substitution:', substitution); // Debug log
-                    // Apply filters
-                    if ((location === 'all' || substitution.location === location) &&
-                        (!date || substitution.date === date)) {
-                        substitution.id = childSnapshot.key;
-                        substitutions.push(substitution);
-                    }
-                });
-
-                console.log('Filtered substitutions:', substitutions); // Debug log
-
-                if (substitutions.length === 0) {
+                substitutions = []; // Reset array
+                if (!snapshot.exists()) {
+                    console.log('Nessuna sostituzione trovata'); // Debug log
                     substitutionsList.innerHTML = `
                         <div class="no-data">
                             <i class="fas fa-calendar-check"></i>
-                            <p>Nessuna sostituzione trovata con i filtri selezionati</p>
+                            <p>Nessuna sostituzione trovata</p>
                         </div>
                     `;
                     return;
                 }
 
-                // Sort substitutions by date and time slot
-                substitutions.sort((a, b) => {
-                    if (a.date === b.date) {
-                        return parseInt(a.timeSlot) - parseInt(b.timeSlot);
-                    }
-                    return a.date.localeCompare(b.date);
+                // Raccogli tutte le sostituzioni
+                snapshot.forEach((childSnapshot) => {
+                    const substitution = childSnapshot.val();
+                    substitution.id = childSnapshot.key;
+                    substitutions.push(substitution);
+                    console.log('Sostituzione caricata:', substitution); // Debug log
                 });
 
-                // Group substitutions by date
-                const groupedSubstitutions = substitutions.reduce((groups, substitution) => {
-                    const date = substitution.date;
-                    if (!groups[date]) {
-                        groups[date] = [];
-                    }
-                    groups[date].push(substitution);
-                    return groups;
-                }, {});
-
-                // Create HTML for each date group
-                Object.entries(groupedSubstitutions).forEach(([date, dateSubstitutions]) => {
-                    const dateHeader = document.createElement('div');
-                    dateHeader.className = 'date-group-header';
-                    dateHeader.innerHTML = `
-                        <h3>${new Date(date).toLocaleDateString('it-IT', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                        })}</h3>
-                    `;
-                    substitutionsList.appendChild(dateHeader);
-
-                    dateSubstitutions.forEach(substitution => {
-                        const substitutionElement = document.createElement('div');
-                        substitutionElement.className = 'substitution-item';
-                        substitutionElement.innerHTML = `
-                            <div class="substitution-info">
-                                <div class="substitution-header">
-                                    <span class="location">${substitution.location}</span>
-                                    <span class="time">${getTimeSlotText(substitution.timeSlot)}</span>
-                                </div>
-                                <div class="substitution-details">
-                                    <span class="class">Classe: ${substitution.class}</span>
-                                    <span class="subject">Materia: ${substitution.subject}</span>
-                                    <span class="teachers">
-                                        <span class="replaced">Sostituito: ${substitution.replacedTeacher}</span>
-                                        <span class="substitute">Sostituto: ${substitution.substituteTeacher}</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="substitution-actions">
-                                <button onclick="editSubstitution('${substitution.id}')" class="edit-button">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="deleteSubstitution('${substitution.id}')" class="delete-button">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        `;
-                        substitutionsList.appendChild(substitutionElement);
-                    });
-                });
+                console.log('Totale sostituzioni caricate:', substitutions.length); // Debug log
+                filterSubstitutions(location, date);
             }, (error) => {
                 console.error('Error loading substitutions:', error);
                 const substitutionsList = document.getElementById('substitutionsList');
@@ -748,6 +747,96 @@
                         <p>Errore nel caricamento delle sostituzioni</p>
                     </div>
                 `;
+            });
+        }
+
+        // Nuova funzione per filtrare le sostituzioni
+        function filterSubstitutions(location = 'all', date = '') {
+            console.log('Filtro sostituzioni:', { location, date, total: substitutions.length }); // Debug log
+            
+            const substitutionsList = document.getElementById('substitutionsList');
+            substitutionsList.innerHTML = '';
+
+            // Filtra le sostituzioni
+            filteredSubstitutions = substitutions.filter(substitution => {
+                const matchesLocation = location === 'all' || substitution.location === location;
+                const matchesDate = !date || substitution.date === date;
+                return matchesLocation && matchesDate;
+            });
+
+            console.log('Sostituzioni filtrate:', filteredSubstitutions.length); // Debug log
+
+            if (filteredSubstitutions.length === 0) {
+                substitutionsList.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-calendar-check"></i>
+                        <p>Nessuna sostituzione trovata con i filtri selezionati</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Ordina le sostituzioni per data e ora
+            filteredSubstitutions.sort((a, b) => {
+                if (a.date === b.date) {
+                    return parseInt(a.timeSlot) - parseInt(b.timeSlot);
+                }
+                return a.date.localeCompare(b.date);
+            });
+
+            // Raggruppa per data
+            const groupedSubstitutions = filteredSubstitutions.reduce((groups, substitution) => {
+                const date = substitution.date;
+                if (!groups[date]) {
+                    groups[date] = [];
+                }
+                groups[date].push(substitution);
+                return groups;
+            }, {});
+
+            // Crea HTML per ogni gruppo di date
+            Object.entries(groupedSubstitutions).forEach(([date, dateSubstitutions]) => {
+                const dateHeader = document.createElement('div');
+                dateHeader.className = 'date-group-header';
+                dateHeader.innerHTML = `
+                    <h3>${new Date(date).toLocaleDateString('it-IT', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })}</h3>
+                `;
+                substitutionsList.appendChild(dateHeader);
+
+                dateSubstitutions.forEach(substitution => {
+                    const substitutionElement = document.createElement('div');
+                    substitutionElement.className = 'substitution-item';
+                    substitutionElement.innerHTML = `
+                        <div class="substitution-info">
+                            <div class="substitution-header">
+                                <span class="location">${substitution.location}</span>
+                                <span class="time">${getTimeSlotText(substitution.timeSlot)}</span>
+                            </div>
+                            <div class="substitution-details">
+                                <span class="class">Classe: ${substitution.class || 'N/A'}</span>
+                                <span class="subject">Materia: ${substitution.subject || 'N/A'}</span>
+                                <span class="teachers">
+                                    <span class="replaced">Sostituito: ${substitution.replacedTeacher || 'N/A'}</span>
+                                    <span class="substitute">Sostituto: ${substitution.substituteTeacher || 'N/A'}</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="substitution-actions">
+                            <button onclick="editSubstitution('${substitution.id}')" class="edit-button">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteSubstitution('${substitution.id}')" class="delete-button">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    substitutionsList.appendChild(substitutionElement);
+                });
             });
         }
 
@@ -1022,6 +1111,205 @@
                 loadCalendarEvents('all', today);
             }
         });
+
+        window.filterCarouselContent = () => {
+            console.log('Filtro contenuti, items disponibili:', items.length); // Debug log
+            
+            const typeFilter = document.getElementById('contentTypeFilter').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            const searchQuery = document.getElementById('contentSearch').value.toLowerCase();
+            const itemsList = document.getElementById('carouselItemsList');
+            
+            if (!items || items.length === 0) {
+                console.log('Nessun item da filtrare'); // Debug log
+                itemsList.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-images"></i>
+                        <p>Nessun contenuto disponibile</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Filtra gli elementi
+            const filteredItems = items.filter(item => {
+                const matchesType = typeFilter === 'all' || item.type === typeFilter;
+                const matchesSearch = item.title.toLowerCase().includes(searchQuery);
+                return matchesType && matchesSearch;
+            });
+            
+            console.log('Items filtrati:', filteredItems.length); // Debug log
+
+            // Ordina gli elementi
+            filteredItems.sort((a, b) => {
+                switch(sortOrder) {
+                    case 'order':
+                        return (a.order || 0) - (b.order || 0);
+                    case 'date':
+                        return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+                    case 'title':
+                        return (a.title || '').localeCompare(b.title || '');
+                    default:
+                        return 0;
+                }
+            });
+
+            // Aggiorna la visualizzazione
+            itemsList.innerHTML = '';
+            if (filteredItems.length === 0) {
+                itemsList.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-search"></i>
+                        <p>Nessun contenuto corrisponde ai filtri selezionati</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filteredItems.forEach(item => {
+                const itemElement = createCarouselItemElement(item);
+                itemsList.appendChild(itemElement);
+            });
+        };
+
+        function createCarouselItemElement(item) {
+            console.log('Creazione elemento per:', item); // Debug log
+            
+            const itemElement = document.createElement('div');
+            itemElement.className = 'carousel-item-card';
+            
+            const previewContent = item.type === 'image' 
+                ? `<img src="${item.data}" alt="${item.title || 'Immagine'}" class="carousel-item-preview">`
+                : `<video src="${item.data}" class="carousel-item-preview" muted></video>`;
+            
+            const date = item.updatedAt 
+                ? new Date(item.updatedAt).toLocaleDateString('it-IT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+                : 'Data non disponibile';
+            
+            itemElement.innerHTML = `
+                ${previewContent}
+                <div class="carousel-item-info">
+                    <div class="carousel-item-header">
+                        <div class="carousel-item-title">
+                            <span class="item-number">${item.order || '?'}</span>
+                            ${item.title || 'Senza titolo'}
+                        </div>
+                    </div>
+                    <div class="carousel-item-meta">
+                        <div class="carousel-item-type">
+                            <i class="fas fa-${item.type === 'image' ? 'image' : 'video'}"></i>
+                            ${item.type === 'image' ? 'Immagine' : 'Video'}
+                        </div>
+                        <div class="carousel-item-date">
+                            <i class="fas fa-clock"></i> Caricato il ${date}
+                        </div>
+                    </div>
+                    <div class="carousel-item-actions">
+                        <button onclick="editCarouselItem('${item.id}')" class="edit-button">
+                            <i class="fas fa-edit"></i> Modifica
+                        </button>
+                        <button onclick="deleteCarouselItem('${location}', '${item.id}')" class="delete-button">
+                            <i class="fas fa-trash"></i> Elimina
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return itemElement;
+        }
+
+        window.reorderCarouselItems = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Riordina Contenuti</h2>
+                        <button onclick="this.closest('.modal').remove()" class="close-button">&times;</button>
+                    </div>
+                    <div class="reorder-list">
+                        ${items.map((item, index) => `
+                            <div class="reorder-item" data-id="${item.id}">
+                                <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                                <span class="item-preview">
+                                    ${item.type === 'image' 
+                                        ? `<img src="${item.data}" alt="${item.title}">`
+                                        : `<video src="${item.data}" muted></video>`}
+                                </span>
+                                <span class="item-title">${item.title}</span>
+                                <span class="item-number">${item.order}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="modal-actions">
+                        <button onclick="saveNewOrder()" class="save-button">Salva Ordine</button>
+                        <button onclick="this.closest('.modal').remove()" class="cancel-button">Annulla</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            initializeDragAndDrop();
+        };
+
+        function initializeDragAndDrop() {
+            const reorderList = document.querySelector('.reorder-list');
+            if (!reorderList) return;
+
+            new Sortable(reorderList, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: function() {
+                    updateOrderNumbers();
+                }
+            });
+        }
+
+        function updateOrderNumbers() {
+            const items = document.querySelectorAll('.reorder-item');
+            items.forEach((item, index) => {
+                item.querySelector('.item-number').textContent = index + 1;
+            });
+        }
+
+        window.saveNewOrder = async () => {
+            const items = document.querySelectorAll('.reorder-item');
+            const updates = {};
+            
+            items.forEach((item, index) => {
+                const itemId = item.dataset.id;
+                updates[`carousel/${location}/${itemId}/order`] = index + 1;
+            });
+            
+            try {
+                await update(ref(db), updates);
+                showSuccess('Ordine aggiornato con successo');
+                loadCarouselContent();
+                document.querySelector('.modal').remove();
+            } catch (error) {
+                console.error('Error updating order:', error);
+                showError('Errore durante l\'aggiornamento dell\'ordine');
+            }
+        };
+
+        // Utility function per il testo dell'orario
+        function getTimeSlotText(timeSlot) {
+            const timeSlots = {
+                '1': '1° ora (8:00-9:00)',
+                '2': '2° ora (9:00-10:00)',
+                '3': '3° ora (10:00-11:00)',
+                '4': '4° ora (11:00-12:00)',
+                '5': '5° ora (12:00-13:00)',
+                '6': '6° ora (13:00-14:00)'
+            };
+            return timeSlots[timeSlot] || `Orario ${timeSlot}`;
+        }
     </script>
 
     <style>
@@ -1380,11 +1668,12 @@
             }
         }
 
-        .carousel-items-list {
+        .carousel-items-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
             margin-top: 20px;
+            padding: 10px;
         }
 
         .carousel-item-card {
@@ -1392,61 +1681,161 @@
             border-radius: 10px;
             padding: 15px;
             position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .carousel-item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .carousel-item-preview {
             width: 100%;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 5px;
-            margin-bottom: 10px;
+            height: 200px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #000;
+            margin-bottom: 15px;
         }
 
         .carousel-item-info {
-            margin-bottom: 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .carousel-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .carousel-item-title {
+            font-size: 1.1em;
             font-weight: 500;
-            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .item-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .carousel-item-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .carousel-item-type {
-            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
             color: var(--primary-color);
+        }
+
+        .carousel-item-date {
+            font-size: 0.8em;
         }
 
         .carousel-item-actions {
             display: flex;
             gap: 10px;
-            justify-content: flex-end;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .file-preview {
-            margin-top: 10px;
-            max-width: 300px;
-            max-height: 200px;
-            overflow: hidden;
-            border-radius: 5px;
-        }
-
-        .file-preview img,
-        .file-preview video {
+        .filters-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
             width: 100%;
-            height: auto;
-            object-fit: cover;
-        }
-
-        .location-selector {
             margin-bottom: 20px;
         }
 
-        .location-selector select {
-            padding: 8px;
+        .content-filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
             border-radius: 5px;
             background: rgba(255, 255, 255, 0.1);
             color: var(--text-color);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 150px;
+        }
+
+        .search-group {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-group input {
+            width: 100%;
+            padding: 8px 12px;
+            padding-right: 35px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .search-group i {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media screen and (max-width: 768px) {
+            .carousel-items-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .content-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+
+            .filter-group select {
+                width: 100%;
+            }
+
+            .search-group {
+                width: 100%;
+            }
         }
     </style>
 </body>

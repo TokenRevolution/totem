@@ -84,8 +84,11 @@
                 items = [];
                 if (snapshot.exists()) {
                     snapshot.forEach((childSnapshot) => {
-                        items.push(childSnapshot.val());
+                        const item = childSnapshot.val();
+                        items.push(item);
                     });
+                    // Ordina gli elementi per numero d'ordine
+                    items.sort((a, b) => (a.order || 0) - (b.order || 0));
                     updateCarousel();
                     startAutoplay();
                 }
@@ -105,16 +108,28 @@
                 const carouselItem = document.createElement('div');
                 carouselItem.className = `carousel-item ${index === currentIndex ? 'active' : ''}`;
                 
-                if (item.type === 'video') {
+                console.log('Caricamento item:', {
+                    tipo: item.type,
+                    fileType: item.fileType,
+                    titolo: item.title
+                }); // Debug log
+
+                if (item.type === 'video' && item.fileType && item.fileType.startsWith('video/')) {
                     carouselItem.innerHTML = `
-                        <video autoplay loop muted playsinline>
-                            <source src="${item.url}" type="video/mp4">
+                        <video class="carousel-media" playsinline muted>
+                            <source src="${item.data}" type="${item.fileType}">
+                            Il tuo browser non supporta il tag video.
                         </video>
+                        <div class="carousel-number">${item.order}</div>
+                    `;
+                } else if (item.type === 'image' || (item.fileType && item.fileType.startsWith('image/'))) {
+                    carouselItem.innerHTML = `
+                        <img src="${item.data}" alt="${item.title || 'Immagine'}" class="carousel-media">
+                        <div class="carousel-number">${item.order}</div>
                     `;
                 } else {
-                    carouselItem.innerHTML = `
-                        <img src="${item.url}" alt="${item.title || 'Immagine'}">
-                    `;
+                    console.error('Tipo di contenuto non supportato:', item);
+                    return;
                 }
                 
                 carousel.appendChild(carouselItem);
@@ -125,12 +140,64 @@
                 dot.addEventListener('click', () => goToSlide(index));
                 dots.appendChild(dot);
             });
+
+            // Gestione dei video
+            const videos = carousel.querySelectorAll('video');
+            videos.forEach(video => {
+                console.log('Configurazione video:', video.src); // Debug log
+                
+                // Aggiungi event listeners per la gestione del video
+                video.addEventListener('loadeddata', () => {
+                    console.log('Video caricato:', video.src);
+                    if (video.parentElement.classList.contains('active')) {
+                        video.play().catch(error => {
+                            console.error('Errore nella riproduzione del video:', error);
+                        });
+                    }
+                });
+
+                video.addEventListener('error', (e) => {
+                    console.error('Errore nel caricamento del video:', e);
+                });
+
+                video.addEventListener('ended', () => {
+                    video.currentTime = 0;
+                    video.play().catch(error => {
+                        console.error('Errore nel loop del video:', error);
+                    });
+                });
+            });
+
+            // Avvia il video corrente se presente
+            const activeVideo = carousel.querySelector('.carousel-item.active video');
+            if (activeVideo) {
+                console.log('Avvio video attivo:', activeVideo.src); // Debug log
+                activeVideo.play().catch(error => {
+                    console.error('Errore nella riproduzione del video attivo:', error);
+                });
+            }
         }
 
         // Navigazione del carosello
         function goToSlide(index) {
+            // Ferma tutti i video
+            const allVideos = document.querySelectorAll('.carousel video');
+            allVideos.forEach(video => {
+                video.pause();
+                video.currentTime = 0;
+            });
+
             currentIndex = index;
             updateCarousel();
+
+            // Avvia il video della nuova slide se presente
+            const activeVideo = document.querySelector('.carousel-item.active video');
+            if (activeVideo) {
+                activeVideo.play().catch(error => {
+                    console.error('Errore nella riproduzione del video:', error);
+                });
+            }
+
             resetAutoplay();
         }
 
@@ -187,5 +254,128 @@
         // Inizializza
         loadContent();
     </script>
+
+    <style>
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            margin: 2rem auto;
+            overflow: hidden;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .carousel {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* Aspect ratio 16:9 */
+            overflow: hidden;
+        }
+
+        .carousel-item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .carousel-item.active {
+            opacity: 1;
+            z-index: 1;
+        }
+
+        .carousel-media {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        video.carousel-media {
+            max-height: 100%;
+            max-width: 100%;
+            margin: auto;
+        }
+
+        .carousel-number {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 2;
+        }
+
+        .carousel-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            z-index: 2;
+            padding: 1rem;
+        }
+
+        .carousel-prev,
+        .carousel-next {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .carousel-prev:hover,
+        .carousel-next:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .carousel-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .carousel-dot.active {
+            background: var(--primary-color);
+            transform: scale(1.2);
+        }
+    </style>
 </body>
 </html> 
