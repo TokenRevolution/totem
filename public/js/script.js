@@ -19,7 +19,9 @@ function createParticles() {
 
 // Funzione per verificare se il dispositivo è mobile
 function isMobileDevice() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('Is Mobile Device:', isMobile, 'User Agent:', navigator.userAgent);
+    return isMobile;
 }
 
 // Funzione per verificare se il browser supporta l'autoplay
@@ -43,9 +45,44 @@ async function checkAutoplaySupport() {
 // Initialize YouTube Player
 async function onYouTubeIframeAPIReady() {
     try {
+        console.log('YouTube API Ready');
         const isMobile = isMobileDevice();
-        const autoplaySupported = await checkAutoplaySupport();
         
+        // Creiamo il bottone play per tutti i dispositivi
+        const playerContainer = document.querySelector('.player-container');
+        if (!playerContainer) {
+            console.error('Player container non trovato!');
+            return;
+        }
+
+        // Rimuovi eventuali bottoni play esistenti
+        const existingButton = document.querySelector('.mobile-play-button');
+        if (existingButton) {
+            existingButton.remove();
+        }
+
+        // Crea il nuovo bottone play
+        const playButton = document.createElement('div');
+        playButton.className = 'mobile-play-button glass-effect';
+        playButton.innerHTML = `
+            <i class="fas fa-play-circle"></i>
+            <span>Tocca per riprodurre</span>
+        `;
+        playButton.style.display = 'flex'; // Forza la visualizzazione
+        console.log('Creazione bottone play');
+        
+        playButton.addEventListener('click', () => {
+            console.log('Bottone play cliccato');
+            if (player && player.playVideo) {
+                player.playVideo();
+                playButton.style.display = 'none';
+            }
+        });
+
+        // Aggiungi il bottone al container
+        playerContainer.appendChild(playButton);
+        console.log('Bottone play aggiunto al container');
+
         const playerConfig = {
             height: '100%',
             width: '100%',
@@ -56,7 +93,7 @@ async function onYouTubeIframeAPIReady() {
                 'loop': 1,
                 'playlist': playlistId,
                 'controls': 1,
-                'autoplay': 0, // Disabilitiamo l'autoplay di default
+                'autoplay': 0,
                 'rel': 0,
                 'showinfo': 0,
                 'modestbranding': 1,
@@ -71,31 +108,9 @@ async function onYouTubeIframeAPIReady() {
             }
         };
 
-        // Configurazioni specifiche per mobile
-        if (isMobile) {
-            playerConfig.playerVars.mobile = 1;
-            playerConfig.playerVars.playsinline = 1;
-        }
-
         player = new YT.Player('player', playerConfig);
+        console.log('Player YouTube inizializzato');
 
-        // Aggiungi il pulsante play per dispositivi mobili
-        if (isMobile) {
-            const playerContainer = document.querySelector('.player-container');
-            const playButton = document.createElement('div');
-            playButton.className = 'mobile-play-button glass-effect';
-            playButton.innerHTML = `
-                <i class="fas fa-play-circle"></i>
-                <span>Tocca per riprodurre</span>
-            `;
-            playButton.addEventListener('click', () => {
-                if (player && player.playVideo) {
-                    player.playVideo();
-                    playButton.style.display = 'none';
-                }
-            });
-            playerContainer.appendChild(playButton);
-        }
     } catch (error) {
         console.error('Errore durante l\'inizializzazione del player:', error);
         showErrorMessage('Errore durante l\'inizializzazione del player. Ricarica la pagina o prova un browser diverso.');
@@ -104,10 +119,17 @@ async function onYouTubeIframeAPIReady() {
 
 // Handle player state changes
 function onPlayerStateChange(event) {
+    console.log('Player State Changed:', event.data);
     const statusDot = document.querySelector('.status-dot');
     const statusText = document.querySelector('.status-text');
     const playerInfo = document.querySelector('.player-info span');
     const playButton = document.querySelector('.mobile-play-button');
+
+    if (playButton) {
+        console.log('Play button found, current display:', playButton.style.display);
+    } else {
+        console.log('Play button not found in DOM');
+    }
 
     switch(event.data) {
         case YT.PlayerState.PLAYING:
@@ -116,6 +138,7 @@ function onPlayerStateChange(event) {
             playerInfo.textContent = 'Riproduzione in corso';
             if (playButton) {
                 playButton.style.display = 'none';
+                console.log('Nascondo il bottone play');
             }
             break;
         case YT.PlayerState.PAUSED:
@@ -124,6 +147,7 @@ function onPlayerStateChange(event) {
             playerInfo.textContent = 'In pausa';
             if (playButton) {
                 playButton.style.display = 'flex';
+                console.log('Mostro il bottone play');
             }
             break;
         case YT.PlayerState.ENDED:
@@ -135,6 +159,7 @@ function onPlayerStateChange(event) {
                 playerInfo.textContent = 'Riproduzione terminata';
                 if (playButton) {
                     playButton.style.display = 'flex';
+                    console.log('Mostro il bottone play (video terminato)');
                 }
             }
             break;
