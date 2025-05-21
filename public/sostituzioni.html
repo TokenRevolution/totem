@@ -246,10 +246,6 @@
                                         <i class="fas fa-chalkboard"></i>
                                         ${sub.class}
                                     </div>
-                                    <div class="subject">
-                                        <i class="fas fa-book"></i>
-                                        ${sub.subject}
-                                    </div>
                                     <div class="teachers">
                                         <span class="replaced">
                                             <i class="fas fa-user-minus"></i>
@@ -553,7 +549,6 @@
 
         .content.glass-effect {
             padding: 1rem;
-            margin: 1rem;
             border-radius: 15px;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -881,6 +876,8 @@
         .substitutions-list {
             position: relative;
             min-height: 200px;
+            overflow: visible;
+            height: 100%;
         }
 
         .table-container {
@@ -889,9 +886,184 @@
             border-radius: 8px;
             position: relative;
             width: 100%;
-            overflow: auto;
-            max-height: 70vh;
+            overflow: visible;
+            height: 100%;
             min-height: 200px;
+        }
+
+        .substitutions-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+            min-width: 0;
+        }
+
+        .substitutions-table th,
+        .substitutions-table td {
+            padding: 0.3rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            vertical-align: top;
+            position: relative;
+            min-width: 60px;
+            font-size: 0.85em;
+        }
+
+        .substitution-info {
+            text-align: left;
+            font-size: 0.8em;
+            padding: 0.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            margin: 0.1rem 0;
+        }
+
+        .time-slot {
+            font-size: 0.9em;
+            white-space: nowrap;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Media Queries for different screen sizes */
+        @media screen and (max-width: 1200px) {
+            .substitutions-container {
+                height: calc(100vh - 180px);
+                padding: 0.75rem;
+            }
+
+            .substitutions-header {
+                margin-bottom: 0.75rem;
+            }
+
+            .filters {
+                gap: 0.75rem;
+            }
+        }
+
+        @media screen and (max-width: 992px) {
+            .substitutions-container {
+                height: calc(100vh - 160px);
+                padding: 0.5rem;
+            }
+
+            .substitutions-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+
+            .filters {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            .location-filter,
+            .date-filter {
+                flex: 1;
+                min-width: 150px;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .substitutions-container {
+                height: calc(100vh - 140px);
+                padding: 0.5rem;
+            }
+
+            .substitutions-header {
+                margin-bottom: 0.5rem;
+            }
+
+            .filters {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .location-filter,
+            .date-filter {
+                width: 100%;
+            }
+
+            .location-filter select,
+            .date-filter input {
+                width: 100%;
+            }
+        }
+
+        /* Landscape orientation specific styles */
+        @media screen and (orientation: landscape) and (max-height: 600px) {
+            .substitutions-container {
+                height: calc(100vh - 120px);
+            }
+
+            .substitutions-header {
+                margin-bottom: 0.5rem;
+            }
+
+            .filters {
+                flex-direction: row;
+                gap: 0.5rem;
+            }
+
+            .location-filter,
+            .date-filter {
+                flex: 1;
+            }
+
+            .substitutions-table th,
+            .substitutions-table td {
+                padding: 0.3rem;
+            }
+
+            .day-header {
+                padding: 0.3rem;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .substitutions-container {
+                height: auto;
+                padding: 0;
+            }
+
+            .substitutions-header {
+                display: none;
+            }
+
+            .table-container {
+                overflow: visible;
+                background: none;
+            }
+
+            .substitutions-table {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .substitutions-table th,
+            .substitutions-table td {
+                padding: 0.5rem;
+                border: 1px solid #000;
+                background: none !important;
+                color: #000;
+                min-width: auto;
+            }
+
+            .substitution-info {
+                background: none;
+                border: 1px solid #ddd;
+                color: #000;
+            }
+
+            .day-header {
+                background: none;
+            }
+
+            .day-name,
+            .day-date {
+                color: #000;
+            }
         }
     </style>
 </body>

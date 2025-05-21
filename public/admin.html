@@ -138,11 +138,10 @@
         <div id="substitutionModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>Gestione Sostituzione</h2>
+                    <h2>Gestione Sostituzioni</h2>
                     <button onclick="closeSubstitutionModal()" class="close-button">&times;</button>
                 </div>
                 <form id="substitutionForm" onsubmit="handleSubstitutionSubmit(event)">
-                    <input type="hidden" id="substitutionId">
                     <div class="form-group">
                         <label for="substitutionDate">Data:</label>
                         <input type="date" id="substitutionDate" required>
@@ -155,34 +154,52 @@
                             <option value="TO3">TO3</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="substitutionTimeSlot">Orario:</label>
-                        <select id="substitutionTimeSlot" required>
-                            <option value="1">1° ora (8:00-9:00)</option>
-                            <option value="2">2° ora (9:00-10:00)</option>
-                            <option value="3">3° ora (10:00-11:00)</option>
-                            <option value="4">4° ora (11:00-12:00)</option>
-                            <option value="5">5° ora (12:00-13:00)</option>
-                            <option value="6">6° ora (13:00-14:00)</option>
-                            <option value="7">7° ora (14:00-15:00)</option>
-                            <option value="8">8° ora (15:00-16:00)</option>
-                        </select>
+                    
+                    <div id="substitutionsContainer">
+                        <div class="substitution-entry">
+                            <div class="substitution-row">
+                                <div class="form-group">
+                                    <label for="substitutionTimeSlot_0">Orario:</label>
+                                    <select id="substitutionTimeSlot_0" required>
+                                        <option value="1">1° ora (8:00-9:00)</option>
+                                        <option value="2">2° ora (9:00-10:00)</option>
+                                        <option value="3">3° ora (10:00-11:00)</option>
+                                        <option value="4">4° ora (11:00-12:00)</option>
+                                        <option value="5">5° ora (12:00-13:00)</option>
+                                        <option value="6">6° ora (13:00-14:00)</option>
+                                        <option value="7">7° ora (14:00-15:00)</option>
+                                        <option value="8">8° ora (15:00-16:00)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="substitutionClass_0">Classe:</label>
+                                    <input type="text" id="substitutionClass_0" required placeholder="es. 1A">
+                                </div>
+                                <div class="form-group">
+                                    <label for="replacedTeacher_0">Docente Sostituito:</label>
+                                    <input type="text" id="replacedTeacher_0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="substituteTeacher_0">Docente Sostituto:</label>
+                                    <input type="text" id="substituteTeacher_0" required>
+                                </div>
+                                <button type="button" class="remove-substitution" onclick="removeSubstitutionEntry(this)" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="substitutionClass">Classe:</label>
-                        <input type="text" id="substitutionClass" required placeholder="es. 1A">
-                    </div>
-                    <div class="form-group">
-                        <label for="replacedTeacher">Docente Sostituito:</label>
-                        <input type="text" id="replacedTeacher" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="substituteTeacher">Docente Sostituto:</label>
-                        <input type="text" id="substituteTeacher" required>
-                    </div>
+
                     <div class="form-actions">
-                        <button type="submit" class="save-button">Salva</button>
-                        <button type="button" onclick="closeSubstitutionModal()" class="cancel-button">Annulla</button>
+                        <button type="button" onclick="addSubstitutionEntry()" class="add-button">
+                            <i class="fas fa-plus"></i> Aggiungi Altra Sostituzione
+                        </button>
+                        <button type="submit" class="save-button">
+                            <i class="fas fa-save"></i> Salva Tutte
+                        </button>
+                        <button type="button" onclick="closeSubstitutionModal()" class="cancel-button">
+                            <i class="fas fa-times"></i> Annulla
+                        </button>
                     </div>
                 </form>
             </div>
@@ -389,7 +406,9 @@
             document.getElementById('itemFile').value = '';
             document.getElementById('filePreview').innerHTML = '';
             
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             modal.style.display = 'block';
+            modal.classList.add('active');
         };
 
         window.closeCarouselItemModal = () => {
@@ -594,92 +613,195 @@
         };
 
         // Substitutions functions
+        let substitutionEntryCount = 1;
+
+        window.addSubstitutionEntry = () => {
+            const container = document.getElementById('substitutionsContainer');
+            const newEntry = document.createElement('div');
+            newEntry.className = 'substitution-entry';
+            newEntry.innerHTML = `
+                <div class="substitution-row">
+                    <div class="form-group">
+                        <label for="substitutionTimeSlot_${substitutionEntryCount}">Orario:</label>
+                        <select id="substitutionTimeSlot_${substitutionEntryCount}" required>
+                            <option value="1">1° ora (8:00-9:00)</option>
+                            <option value="2">2° ora (9:00-10:00)</option>
+                            <option value="3">3° ora (10:00-11:00)</option>
+                            <option value="4">4° ora (11:00-12:00)</option>
+                            <option value="5">5° ora (12:00-13:00)</option>
+                            <option value="6">6° ora (13:00-14:00)</option>
+                            <option value="7">7° ora (14:00-15:00)</option>
+                            <option value="8">8° ora (15:00-16:00)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="substitutionClass_${substitutionEntryCount}">Classe:</label>
+                        <input type="text" id="substitutionClass_${substitutionEntryCount}" required placeholder="es. 1A">
+                    </div>
+                    <div class="form-group">
+                        <label for="replacedTeacher_${substitutionEntryCount}">Docente Sostituito:</label>
+                        <input type="text" id="replacedTeacher_${substitutionEntryCount}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="substituteTeacher_${substitutionEntryCount}">Docente Sostituto:</label>
+                        <input type="text" id="substituteTeacher_${substitutionEntryCount}" required>
+                    </div>
+                    <button type="button" class="remove-substitution" onclick="removeSubstitutionEntry(this)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(newEntry);
+            substitutionEntryCount++;
+
+            // Mostra il pulsante di rimozione sulla prima entry se ce ne sono più di una
+            const entries = container.getElementsByClassName('substitution-entry');
+            if (entries.length > 1) {
+                entries[0].querySelector('.remove-substitution').style.display = 'flex';
+            }
+        };
+
+        window.removeSubstitutionEntry = (button) => {
+            const entry = button.closest('.substitution-entry');
+            entry.remove();
+
+            // Nascondi il pulsante di rimozione sulla prima entry se rimane solo una
+            const container = document.getElementById('substitutionsContainer');
+            const entries = container.getElementsByClassName('substitution-entry');
+            if (entries.length === 1) {
+                entries[0].querySelector('.remove-substitution').style.display = 'none';
+            }
+        };
+
         window.addSubstitution = () => {
             const modal = document.getElementById('substitutionModal');
             const form = document.getElementById('substitutionForm');
             const today = new Date().toISOString().split('T')[0];
             
-            document.getElementById('substitutionId').value = '';
+            // Reset del form
+            form.reset();
             document.getElementById('substitutionDate').value = today;
             document.getElementById('substitutionLocation').value = 'TO1';
-            document.getElementById('substitutionTimeSlot').value = '1';
-            document.getElementById('substitutionClass').value = '';
-            document.getElementById('replacedTeacher').value = '';
-            document.getElementById('substituteTeacher').value = '';
             
+            // Reset del container delle sostituzioni
+            const container = document.getElementById('substitutionsContainer');
+            container.innerHTML = `
+                <div class="substitution-entry">
+                    <div class="substitution-row">
+                        <div class="form-group">
+                            <label for="substitutionTimeSlot_0">Orario:</label>
+                            <select id="substitutionTimeSlot_0" required>
+                                <option value="1">1° ora (8:00-9:00)</option>
+                                <option value="2">2° ora (9:00-10:00)</option>
+                                <option value="3">3° ora (10:00-11:00)</option>
+                                <option value="4">4° ora (11:00-12:00)</option>
+                                <option value="5">5° ora (12:00-13:00)</option>
+                                <option value="6">6° ora (13:00-14:00)</option>
+                                <option value="7">7° ora (14:00-15:00)</option>
+                                <option value="8">8° ora (15:00-16:00)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="substitutionClass_0">Classe:</label>
+                            <input type="text" id="substitutionClass_0" required placeholder="es. 1A">
+                        </div>
+                        <div class="form-group">
+                            <label for="replacedTeacher_0">Docente Sostituito:</label>
+                            <input type="text" id="replacedTeacher_0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="substituteTeacher_0">Docente Sostituto:</label>
+                            <input type="text" id="substituteTeacher_0" required>
+                        </div>
+                        <button type="button" class="remove-substitution" onclick="removeSubstitutionEntry(this)" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            substitutionEntryCount = 1;
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             modal.style.display = 'block';
+            modal.classList.add('active');
         };
 
-        window.editSubstitution = (substitutionId) => {
-            const substitutionRef = db.ref(`substitutions/${substitutionId}`);
-            substitutionRef.once('value').then((snapshot) => {
-                if (snapshot.exists()) {
-                    const substitution = snapshot.val();
-                    const modal = document.getElementById('substitutionModal');
-                    
-                    document.getElementById('substitutionId').value = substitutionId;
-                    document.getElementById('substitutionDate').value = substitution.date;
-                    document.getElementById('substitutionLocation').value = substitution.location;
-                    document.getElementById('substitutionTimeSlot').value = substitution.timeSlot;
-                    document.getElementById('substitutionClass').value = substitution.class;
-                    document.getElementById('replacedTeacher').value = substitution.replacedTeacher;
-                    document.getElementById('substituteTeacher').value = substitution.substituteTeacher;
-                    
-                    modal.style.display = 'block';
-                }
-            });
-        };
-
-        window.closeSubstitutionModal = () => {
-            document.getElementById('substitutionModal').style.display = 'none';
+        // Funzione per chiudere il modal delle sostituzioni
+        window.closeSubstitutionModal = function() {
+            const modal = document.getElementById('substitutionModal');
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+            // Rimuovi eventuale stato di modifica
+            const form = document.getElementById('substitutionForm');
+            if (form) form.removeAttribute('data-edit-id');
         };
 
         window.handleSubstitutionSubmit = async (event) => {
             event.preventDefault();
             
-            const substitutionId = document.getElementById('substitutionId').value;
-            const substitution = {
-                date: document.getElementById('substitutionDate').value,
-                location: document.getElementById('substitutionLocation').value,
-                timeSlot: document.getElementById('substitutionTimeSlot').value,
-                class: document.getElementById('substitutionClass').value,
-                replacedTeacher: document.getElementById('replacedTeacher').value,
-                substituteTeacher: document.getElementById('substituteTeacher').value,
-                updatedAt: new Date().toISOString()
-            };
+            const date = document.getElementById('substitutionDate').value;
+            const location = document.getElementById('substitutionLocation').value;
+            const substitutions = [];
+            
+            // Raccogli tutte le sostituzioni dal form
+            const entries = document.getElementsByClassName('substitution-entry');
+            for (let i = 0; i < entries.length; i++) {
+                const timeSlot = document.getElementById(`substitutionTimeSlot_${i}`).value;
+                const class_ = document.getElementById(`substitutionClass_${i}`).value;
+                const replacedTeacher = document.getElementById(`replacedTeacher_${i}`).value;
+                const substituteTeacher = document.getElementById(`substituteTeacher_${i}`).value;
+                
+                substitutions.push({
+                    date,
+                    location,
+                    timeSlot,
+                    class: class_,
+                    replacedTeacher,
+                    substituteTeacher,
+                    updatedAt: new Date().toISOString()
+                });
+            }
 
             try {
-                if (substitutionId) {
-                    // Update existing substitution
-                    await db.ref(`substitutions/${substitutionId}/date`).set(substitution.date);
-                    await db.ref(`substitutions/${substitutionId}/location`).set(substitution.location);
-                    await db.ref(`substitutions/${substitutionId}/timeSlot`).set(substitution.timeSlot);
-                    await db.ref(`substitutions/${substitutionId}/class`).set(substitution.class);
-                    await db.ref(`substitutions/${substitutionId}/replacedTeacher`).set(substitution.replacedTeacher);
-                    await db.ref(`substitutions/${substitutionId}/substituteTeacher`).set(substitution.substituteTeacher);
-                    await db.ref(`substitutions/${substitutionId}/updatedAt`).set(substitution.updatedAt);
-                } else {
-                    // Add new substitution
-                    await db.ref('substitutions').push(substitution);
-                }
+                // Salva tutte le sostituzioni
+                const promises = substitutions.map(substitution => 
+                    db.ref('substitutions').push(substitution)
+                );
+                await Promise.all(promises);
+                
+                // Mostra il messaggio di successo
+                const successMessage = document.createElement('div');
+                successMessage.className = 'success-message';
+                successMessage.innerHTML = `
+                    <i class="fas fa-check-circle"></i>
+                    <p>${substitutions.length} sostituzione${substitutions.length > 1 ? 'i' : ''} salvata${substitutions.length > 1 ? 'e' : ''} con successo!</p>
+                `;
+                document.body.appendChild(successMessage);
+
+                // Rimuovi il messaggio dopo 3 secondi
+                setTimeout(() => {
+                    successMessage.style.animation = 'slideOut 0.3s ease-out forwards';
+                    setTimeout(() => successMessage.remove(), 300);
+                }, 3000);
+
+                // Chiudi il modale e ricarica le sostituzioni
                 closeSubstitutionModal();
                 loadSubstitutions();
             } catch (error) {
-                console.error('Error saving substitution:', error);
-                alert('Errore durante il salvataggio della sostituzione');
-            }
-        };
+                console.error('Error saving substitutions:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'error-message';
+                errorMessage.innerHTML = `
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>Errore durante il salvataggio delle sostituzioni</p>
+                `;
+                document.body.appendChild(errorMessage);
 
-        window.deleteSubstitution = async (substitutionId) => {
-            if (confirm('Sei sicuro di voler eliminare questa sostituzione?')) {
-                try {
-                    await db.ref(`substitutions/${substitutionId}`).remove();
-                    loadSubstitutions();
-                    showSuccess('Sostituzione eliminata con successo');
-                } catch (error) {
-                    console.error('Error deleting substitution:', error);
-                    showError('Errore nell\'eliminazione della sostituzione');
-                }
+                // Rimuovi il messaggio di errore dopo 3 secondi
+                setTimeout(() => {
+                    errorMessage.style.animation = 'slideOut 0.3s ease-out forwards';
+                    setTimeout(() => errorMessage.remove(), 300);
+                }, 3000);
             }
         };
 
@@ -861,7 +983,10 @@
             document.getElementById('nodeName').value = '';
             document.getElementById('nodeRole').value = '';
             document.getElementById('nodeDescription').value = '';
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             modal.style.display = 'block';
+            modal.classList.add('active');
         };
 
         window.editOrgNode = (nodeId) => {
@@ -877,7 +1002,10 @@
                     document.getElementById('nodeName').value = node.name || '';
                     document.getElementById('nodeRole').value = node.role || '';
                     document.getElementById('nodeDescription').value = node.description || '';
+                    
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                     modal.style.display = 'block';
+                    modal.classList.add('active');
                 }
             });
         };
@@ -1232,7 +1360,9 @@
             document.getElementById('eventTitle').value = '';
             document.getElementById('eventDescription').value = '';
             
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             modal.style.display = 'block';
+            modal.classList.add('active');
         };
 
         window.editCalendarEvent = (eventId) => {
@@ -1249,7 +1379,9 @@
                     document.getElementById('eventTitle').value = event.title;
                     document.getElementById('eventDescription').value = event.description || '';
                     
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                     modal.style.display = 'block';
+                    modal.classList.add('active');
                 }
             });
         };
@@ -1428,12 +1560,209 @@
                 loadCalendarEvents('all', today);
             }
         });
+
+        // Ripristino funzioni per modifica e cancellazione singola sostituzione
+        window.editSubstitution = async function(id) {
+            // Recupera la sostituzione dal database
+            const ref = db.ref('substitutions/' + id);
+            const snapshot = await ref.once('value');
+            if (!snapshot.exists()) return;
+            const s = snapshot.val();
+
+            // Prepara il form per la modifica di una sola sostituzione
+            const modal = document.getElementById('substitutionModal');
+            const form = document.getElementById('substitutionForm');
+            form.reset();
+            document.getElementById('substitutionDate').value = s.date;
+            document.getElementById('substitutionLocation').value = s.location;
+            
+            // Popola il container con una sola entry
+            const container = document.getElementById('substitutionsContainer');
+            container.innerHTML = `
+                <div class="substitution-entry">
+                    <div class="substitution-row">
+                        <div class="form-group">
+                            <label for="substitutionTimeSlot_0">Orario:</label>
+                            <select id="substitutionTimeSlot_0" required>
+                                <option value="1">1° ora (8:00-9:00)</option>
+                                <option value="2">2° ora (9:00-10:00)</option>
+                                <option value="3">3° ora (10:00-11:00)</option>
+                                <option value="4">4° ora (11:00-12:00)</option>
+                                <option value="5">5° ora (12:00-13:00)</option>
+                                <option value="6">6° ora (13:00-14:00)</option>
+                                <option value="7">7° ora (14:00-15:00)</option>
+                                <option value="8">8° ora (15:00-16:00)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="substitutionClass_0">Classe:</label>
+                            <input type="text" id="substitutionClass_0" required placeholder="es. 1A">
+                        </div>
+                        <div class="form-group">
+                            <label for="replacedTeacher_0">Docente Sostituito:</label>
+                            <input type="text" id="replacedTeacher_0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="substituteTeacher_0">Docente Sostituto:</label>
+                            <input type="text" id="substituteTeacher_0" required>
+                        </div>
+                        <button type="button" class="remove-substitution" onclick="removeSubstitutionEntry(this)" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            // Imposta i valori
+            document.getElementById('substitutionTimeSlot_0').value = s.timeSlot;
+            document.getElementById('substitutionClass_0').value = s.class;
+            document.getElementById('replacedTeacher_0').value = s.replacedTeacher;
+            document.getElementById('substituteTeacher_0').value = s.substituteTeacher;
+
+            // Salva l'id della sostituzione in modifica
+            form.setAttribute('data-edit-id', id);
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            modal.style.display = 'block';
+            modal.classList.add('active');
+        };
+
+        window.deleteSubstitution = async function(id) {
+            if (!confirm('Sei sicuro di voler eliminare questa sostituzione?')) return;
+            try {
+                await db.ref('substitutions/' + id).remove();
+                loadSubstitutions();
+                // Mostra messaggio di successo
+                const successMessage = document.createElement('div');
+                successMessage.className = 'success-message';
+                successMessage.innerHTML = `
+                    <i class=\"fas fa-check-circle\"></i>
+                    <p>Sostituzione eliminata con successo!</p>
+                `;
+                document.body.appendChild(successMessage);
+                setTimeout(() => {
+                    successMessage.style.animation = 'slideOut 0.3s ease-out forwards';
+                    setTimeout(() => successMessage.remove(), 300);
+                }, 3000);
+            } catch (error) {
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'error-message';
+                errorMessage.innerHTML = `
+                    <i class=\"fas fa-exclamation-circle\"></i>
+                    <p>Errore durante l'eliminazione della sostituzione</p>
+                `;
+                document.body.appendChild(errorMessage);
+                setTimeout(() => {
+                    errorMessage.style.animation = 'slideOut 0.3s ease-out forwards';
+                    setTimeout(() => errorMessage.remove(), 300);
+                }, 3000);
+            }
+        };
+
+        // Modifica la funzione handleSubstitutionSubmit per gestire anche l'update
+        const originalHandleSubstitutionSubmit = window.handleSubstitutionSubmit;
+        window.handleSubstitutionSubmit = async function(event) {
+            event.preventDefault();
+            const form = document.getElementById('substitutionForm');
+            const editId = form.getAttribute('data-edit-id');
+            if (editId) {
+                // Modifica singola sostituzione
+                const date = document.getElementById('substitutionDate').value;
+                const location = document.getElementById('substitutionLocation').value;
+                const timeSlot = document.getElementById('substitutionTimeSlot_0').value;
+                const class_ = document.getElementById('substitutionClass_0').value;
+                const replacedTeacher = document.getElementById('replacedTeacher_0').value;
+                const substituteTeacher = document.getElementById('substituteTeacher_0').value;
+                try {
+                    await db.ref('substitutions/' + editId).update({
+                        date,
+                        location,
+                        timeSlot,
+                        class: class_,
+                        replacedTeacher,
+                        substituteTeacher,
+                        updatedAt: new Date().toISOString()
+                    });
+                    form.removeAttribute('data-edit-id');
+                    closeSubstitutionModal();
+                    loadSubstitutions();
+                    // Messaggio di successo
+                    const successMessage = document.createElement('div');
+                    successMessage.className = 'success-message';
+                    successMessage.innerHTML = `
+                        <i class=\"fas fa-check-circle\"></i>
+                        <p>Sostituzione modificata con successo!</p>
+                    `;
+                    document.body.appendChild(successMessage);
+                    setTimeout(() => {
+                        successMessage.style.animation = 'slideOut 0.3s ease-out forwards';
+                        setTimeout(() => successMessage.remove(), 300);
+                    }, 3000);
+                } catch (error) {
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'error-message';
+                    errorMessage.innerHTML = `
+                        <i class=\"fas fa-exclamation-circle\"></i>
+                        <p>Errore durante la modifica della sostituzione</p>
+                    `;
+                    document.body.appendChild(errorMessage);
+                    setTimeout(() => {
+                        errorMessage.style.animation = 'slideOut 0.3s ease-out forwards';
+                        setTimeout(() => errorMessage.remove(), 300);
+                    }, 3000);
+                }
+            } else {
+                // Inserimento batch
+                await originalHandleSubstitutionSubmit(event);
+            }
+        };
     </script>
 
     <style>
+        .admin-panel {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .modal {
+            display: none;  /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;  /* Show as flex when active */
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            margin: 2rem auto;
+        }
+
         .admin-section {
             margin: 2rem 0;
             padding: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
         }
 
         .admin-controls {
@@ -1491,43 +1820,6 @@
         .admin-user {
             color: #fff;
             font-size: 0.9rem;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            position: relative;
-            width: 90%;
-            max-width: 600px;
-            margin: 2rem auto;
-            padding: 2rem;
-            border-radius: 15px;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .close-button {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0.5rem;
         }
 
         /* Substitutions List Styles */
@@ -1601,28 +1893,6 @@
 
         .delete-button:hover {
             background: rgba(255, 107, 107, 0.2);
-        }
-
-        @media screen and (max-width: 768px) {
-            .substitution-item {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .substitution-header {
-                flex-direction: column;
-                gap: 0.25rem;
-            }
-
-            .substitution-details {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .substitution-actions {
-                width: 100%;
-                justify-content: flex-end;
-            }
         }
 
         .filters {
@@ -1866,6 +2136,264 @@
             background: rgba(255, 255, 255, 0.1);
             color: var(--text-color);
             border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-content select,
+        .modal-content input[type="text"],
+        .modal-content input[type="date"],
+        .modal-content textarea {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .modal-content select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 15px;
+            padding-right: 45px;
+            cursor: pointer;
+        }
+
+        .modal-content select:hover,
+        .modal-content input[type="text"]:hover,
+        .modal-content input[type="date"]:hover,
+        .modal-content textarea:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .modal-content select:focus,
+        .modal-content input[type="text"]:focus,
+        .modal-content input[type="date"]:focus,
+        .modal-content textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.3);
+        }
+
+        .modal-content .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-content .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .modal-content .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            justify-content: flex-end;
+        }
+
+        .modal-content .save-button,
+        .modal-content .cancel-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .modal-content .save-button {
+            background: var(--primary-color);
+            color: #000;
+            font-weight: 600;
+        }
+
+        .modal-content .save-button:hover {
+            background: var(--primary-color-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.4);
+        }
+
+        .modal-content .cancel-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .modal-content .cancel-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .modal-content .close-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: rgba(255, 255, 255, 0.9);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .modal-content .close-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        /* Variabili CSS per i colori primari */
+        :root {
+            --primary-color: #ffd700;
+            --primary-color-dark: #e6c200;
+            --primary-color-rgb: 255, 215, 0;
+        }
+
+        .substitution-entry {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .substitution-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .remove-substitution {
+            background: rgba(255, 107, 107, 0.1);
+            border: none;
+            color: #ff6b6b;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 32px;
+        }
+
+        .remove-substitution:hover {
+            background: rgba(255, 107, 107, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .add-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        @media screen and (max-width: 1200px) {
+            .substitution-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .substitution-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Message styles */
+        .success-message,
+        .error-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .success-message {
+            background: rgba(46, 213, 115, 0.9);
+            color: #fff;
+            border: 1px solid rgba(46, 213, 115, 0.2);
+        }
+
+        .error-message {
+            background: rgba(255, 71, 87, 0.9);
+            color: #fff;
+            border: 1px solid rgba(255, 71, 87, 0.2);
+        }
+
+        .success-message i,
+        .error-message i {
+            font-size: 1.2rem;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .modal-content select,
+        .modal-content select option {
+            background: #222;
+            color: #fff;
         }
     </style>
 </body>

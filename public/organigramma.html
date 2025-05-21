@@ -8,12 +8,255 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-color-rgb: 0, 123, 255;  /* This should match your primary color */
+            --primary-color-rgb: 0, 123, 255;
+            --node-bg: rgba(255, 255, 255, 0.08);
+            --node-hover-bg: rgba(255, 255, 255, 0.12);
+            --node-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            --node-border: 1px solid rgba(255, 255, 255, 0.1);
+            --line-color: rgba(var(--primary-color-rgb), 0.4);
+            --line-hover-color: rgba(var(--primary-color-rgb), 0.6);
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            flex: 0 0 auto;
+            padding: 1rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-50%) translateX(5px);
+        }
+
+        .logo-container {
+            margin-bottom: 1rem;
+        }
+
+        .school-logo {
+            height: 80px;
+            width: auto;
+        }
+
+        .music-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            color: #fff;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+
+        .content {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .org-tree {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            transform-origin: center;
+            transform: scale(var(--scale, 1));
+        }
+
+        .org-node {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0.5rem 0;
+        }
+
+        .org-node-content {
+            background: var(--node-bg);
+            border-radius: 8px;
+            padding: 0.8rem;
+            width: 180px;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--node-shadow);
+            border: var(--node-border);
+        }
+
+        .org-node-content:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            background: var(--node-hover-bg);
+            border-color: rgba(var(--primary-color-rgb), 0.3);
+        }
+
+        .org-node-header {
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .org-node-header h3 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .org-node-details {
+            text-align: center;
+        }
+
+        .org-node-details .name {
+            font-weight: 600;
+            margin: 0.3rem 0;
+            font-size: 0.85rem;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .org-node-details .role {
+            color: var(--primary-color);
+            margin: 0.3rem 0;
+            font-weight: 500;
+            font-size: 0.8rem;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+
+        .org-node-details .description {
+            color: rgba(255, 255, 255, 0.8);
+            margin: 0.3rem 0;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            font-style: italic;
+        }
+
+        .org-node-children {
+            display: flex;
+            justify-content: center;
+            position: relative;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            gap: 1.2rem;
+        }
+
+        .org-node-children::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 1px;
+            height: 1rem;
+            background: var(--line-color);
+            transform: translateX(-50%);
+        }
+
+        .org-node-children .org-node {
+            position: relative;
+            margin: 0 0.6rem;
+        }
+
+        .org-node-children .org-node::before {
+            content: '';
+            position: absolute;
+            top: -1rem;
+            left: 50%;
+            width: 1px;
+            height: 1rem;
+            background: var(--line-color);
+            transform: translateX(-50%);
+        }
+
+        .org-node-children .org-node:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: -1rem;
+            right: -1.2rem;
+            width: 2.4rem;
+            height: 1px;
+            background: var(--line-color);
+        }
+
+        .org-node-children::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: calc(25% + 0.6rem);
+            right: calc(25% + 0.6rem);
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--line-color),
+                transparent
+            );
+        }
+
+        .footer {
+            flex: 0 0 auto;
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .footer-sub {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 0.2rem;
         }
     </style>
 </head>
 <body>
-    <div class="container glass-effect">
+    <div class="container">
         <div class="header">
             <a href="index.html" class="back-button">
                 <i class="fas fa-arrow-left"></i>
@@ -27,14 +270,11 @@
             <div class="subtitle">Visualizzazione dell'organigramma</div>
         </div>
         
-        <!-- Content Section -->
-        <div class="content glass-effect">
-            <div class="org-structure-viewer">
-                <div id="orgTree" class="org-tree"></div>
-            </div>
+        <div class="content">
+            <div id="orgTree" class="org-tree"></div>
         </div>
 
-        <footer class="footer glass-effect">
+        <footer class="footer">
             <p>© 2024 Totem Navigation | IIS P.Boselli Torino | Tutti i diritti riservati</p>
             <p class="footer-sub">Progetto sviluppato presso l'Istituto di Istruzione Superiore Paolo Boselli di Torino</p>
         </footer>
@@ -286,36 +526,6 @@
                 background: rgba(var(--primary-color-rgb), 0.3);
             }
 
-            /* Responsive design */
-            @media screen and (max-width: 768px) {
-                .org-structure-viewer {
-                    padding: 1rem;
-                }
-
-                .org-node-content {
-                    min-width: 200px;
-                    padding: 1rem;
-                }
-
-                .org-node-children {
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 1rem;
-                }
-
-                .org-node-children .org-node {
-                    margin: 1rem 0;
-                }
-
-                .org-node-children .org-node:not(:last-child)::after {
-                    display: none;
-                }
-
-                .org-node-children::after {
-                    display: none;
-                }
-            }
-
             /* No data message styles */
             .no-data {
                 text-align: center;
@@ -340,6 +550,40 @@
             }
         `;
         document.head.appendChild(orgStyles);
+    </script>
+
+    <!-- Auto-scaling script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function scaleOrgChart() {
+                const content = document.querySelector('.content');
+                const orgTree = document.querySelector('.org-tree');
+                
+                if (!content || !orgTree) return;
+
+                // Reset scale to measure original size
+                orgTree.style.setProperty('--scale', '1');
+                
+                const contentRect = content.getBoundingClientRect();
+                const treeRect = orgTree.getBoundingClientRect();
+                
+                // Calculate scale factors for both dimensions
+                const scaleX = (contentRect.width * 0.95) / treeRect.width;
+                const scaleY = (contentRect.height * 0.95) / treeRect.height;
+                
+                // Use the smaller scale to ensure it fits both dimensions
+                const scale = Math.min(scaleX, scaleY, 1);
+                
+                // Apply the scale
+                orgTree.style.setProperty('--scale', scale);
+            }
+
+            // Initial scaling
+            scaleOrgChart();
+
+            // Re-scale on window resize
+            window.addEventListener('resize', scaleOrgChart);
+        });
     </script>
 </body>
 </html> 
