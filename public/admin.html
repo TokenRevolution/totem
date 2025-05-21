@@ -168,10 +168,6 @@
                         <input type="text" id="substitutionClass" required placeholder="es. 1A">
                     </div>
                     <div class="form-group">
-                        <label for="substitutionSubject">Materia:</label>
-                        <input type="text" id="substitutionSubject" required>
-                    </div>
-                    <div class="form-group">
                         <label for="replacedTeacher">Docente Sostituito:</label>
                         <input type="text" id="replacedTeacher" required>
                     </div>
@@ -566,7 +562,6 @@
             document.getElementById('substitutionLocation').value = 'TO1';
             document.getElementById('substitutionTimeSlot').value = '1';
             document.getElementById('substitutionClass').value = '';
-            document.getElementById('substitutionSubject').value = '';
             document.getElementById('replacedTeacher').value = '';
             document.getElementById('substituteTeacher').value = '';
             
@@ -585,7 +580,6 @@
                     document.getElementById('substitutionLocation').value = substitution.location;
                     document.getElementById('substitutionTimeSlot').value = substitution.timeSlot;
                     document.getElementById('substitutionClass').value = substitution.class;
-                    document.getElementById('substitutionSubject').value = substitution.subject;
                     document.getElementById('replacedTeacher').value = substitution.replacedTeacher;
                     document.getElementById('substituteTeacher').value = substitution.substituteTeacher;
                     
@@ -607,7 +601,6 @@
                 location: document.getElementById('substitutionLocation').value,
                 timeSlot: document.getElementById('substitutionTimeSlot').value,
                 class: document.getElementById('substitutionClass').value,
-                subject: document.getElementById('substitutionSubject').value,
                 replacedTeacher: document.getElementById('replacedTeacher').value,
                 substituteTeacher: document.getElementById('substituteTeacher').value,
                 updatedAt: new Date().toISOString()
@@ -620,7 +613,6 @@
                     await db.ref(`substitutions/${substitutionId}/location`).set(substitution.location);
                     await db.ref(`substitutions/${substitutionId}/timeSlot`).set(substitution.timeSlot);
                     await db.ref(`substitutions/${substitutionId}/class`).set(substitution.class);
-                    await db.ref(`substitutions/${substitutionId}/subject`).set(substitution.subject);
                     await db.ref(`substitutions/${substitutionId}/replacedTeacher`).set(substitution.replacedTeacher);
                     await db.ref(`substitutions/${substitutionId}/substituteTeacher`).set(substitution.substituteTeacher);
                     await db.ref(`substitutions/${substitutionId}/updatedAt`).set(substitution.updatedAt);
@@ -734,7 +726,6 @@
                                 </div>
                                 <div class="substitution-details">
                                     <span class="class">Classe: ${substitution.class}</span>
-                                    <span class="subject">Materia: ${substitution.subject}</span>
                                     <span class="teachers">
                                         <span class="replaced">Sostituito: ${substitution.replacedTeacher}</span>
                                         <span class="substitute">Sostituto: ${substitution.substituteTeacher}</span>
