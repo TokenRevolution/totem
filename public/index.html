@@ -132,6 +132,85 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .voice-command-button {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            background: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .voice-command-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .voice-command-button.listening {
+            background: #ff4444;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        .voice-command-button i {
+            font-size: 1.2em;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .voice-feedback {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .voice-feedback.show {
+            display: flex;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .voice-command-button {
+                top: auto;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px;
+                border-radius: 50%;
+            }
+
+            .voice-command-button span {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -144,6 +223,10 @@
             <div class="logo-container">
                 <img src="https://www.istitutoboselli.edu.it/wp-content/uploads/2024/04/logo-boselli-ritaglio-1.png" alt="Logo IIS P.Boselli" class="school-logo">
             </div>
+            <button id="voiceCommandButton" class="voice-command-button" onclick="toggleVoiceCommand()">
+                <i class="fas fa-microphone"></i>
+                <span>Comando Vocale</span>
+            </button>
             <h1>IIS P.Boselli</h1>
             <div class="subtitle">Seleziona la sezione desiderata</div>
         </div>
@@ -175,7 +258,7 @@
                     <a href="sostituzioni.html" class="nav-item">
                         <i class="fas fa-exchange-alt"></i>
                         Sostituzioni
-            </a>
+                    </a>
                     <a href="calendario-impegni.html" class="nav-item">
                         <i class="fas fa-calendar-alt"></i>
                         Calendario Impegni
@@ -205,7 +288,7 @@
                 <h2 class="section-title">PNRR</h2>
                 <div class="nav-grid">
                     <a class="nav-item disabled" style="position:relative; pointer-events:none; opacity:0.7;">
-                <i class="fas fa-desktop"></i>
+                        <i class="fas fa-desktop"></i>
                         DM65
                         <span style="
                             position: absolute;
@@ -220,9 +303,9 @@
                             text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000;
                             border: 1px solid #000;
                         ">In sviluppo</span>
-            </a>
+                    </a>
                     <a class="nav-item disabled" style="position:relative; pointer-events:none; opacity:0.7;">
-                <i class="fas fa-desktop"></i>
+                        <i class="fas fa-desktop"></i>
                         DM66
                         <span style="
                             position: absolute;
@@ -237,9 +320,9 @@
                             text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000;
                             border: 1px solid #000;
                         ">In sviluppo</span>
-            </a>
+                    </a>
                     <a class="nav-item disabled" style="position:relative; pointer-events:none; opacity:0.7;">
-                <i class="fas fa-desktop"></i>
+                        <i class="fas fa-desktop"></i>
                         DM19
                         <span style="
                             position: absolute;
@@ -254,9 +337,9 @@
                             text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000;
                             border: 1px solid #000;
                         ">In sviluppo</span>
-            </a>
+                    </a>
                     <a class="nav-item disabled" style="position:relative; pointer-events:none; opacity:0.7;">
-                <i class="fas fa-flask"></i>
+                        <i class="fas fa-flask"></i>
                         LABS
                         <span style="
                             position: absolute;
@@ -271,9 +354,9 @@
                             text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000;
                             border: 1px solid #000;
                         ">In sviluppo</span>
-            </a>
+                    </a>
                     <a class="nav-item disabled" style="position:relative; pointer-events:none; opacity:0.7;">
-                <i class="fas fa-chalkboard"></i>
+                        <i class="fas fa-chalkboard"></i>
                         CLASSROOM
                         <span style="
                             position: absolute;
@@ -298,5 +381,104 @@
             <p class="footer-sub">Progetto sviluppato presso l'Istituto di Istruzione Superiore Paolo Boselli di Torino</p>
         </footer>
     </div>
+
+    <div id="voiceFeedback" class="voice-feedback">
+        <i class="fas fa-microphone"></i>
+        <span id="voiceFeedbackText"></span>
+    </div>
+
+    <script>
+        // Mappa dei comandi vocali
+        const voiceCommands = {
+            'montecuccoli': 'playlist.html',
+            'sansovino': 'viasansovino.html',
+            'luini': 'vialuini.html',
+            'sostituzioni': 'sostituzioni.html',
+            'calendario': 'calendario-impegni.html',
+            'impegni': 'calendario-impegni.html',
+            'admin': 'admin.html',
+            'pannello admin': 'admin.html',
+            'amministrazione': 'admin.html'
+        };
+
+        let recognition = null;
+        let isListening = false;
+
+        function initSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window)) {
+                showVoiceFeedback('Il riconoscimento vocale non è supportato dal tuo browser');
+                return;
+            }
+
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'it-IT';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('voiceCommandButton').classList.add('listening');
+                showVoiceFeedback('Ti sto ascoltando...');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('voiceCommandButton').classList.remove('listening');
+                hideVoiceFeedback();
+            };
+
+            recognition.onresult = (event) => {
+                const command = event.results[0][0].transcript.toLowerCase().trim();
+                showVoiceFeedback(`Comando riconosciuto: ${command}`);
+                
+                // Cerca il comando nella mappa
+                for (const [key, url] of Object.entries(voiceCommands)) {
+                    if (command.includes(key)) {
+                        setTimeout(() => {
+                            window.location.href = url;
+                        }, 1000);
+                        return;
+                    }
+                }
+                
+                // Se il comando non è riconosciuto
+                showVoiceFeedback('Comando non riconosciuto. Prova con: Montecuccoli, Sansovino, Luini, Sostituzioni, Calendario, Admin');
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Errore nel riconoscimento vocale:', event.error);
+                showVoiceFeedback('Errore nel riconoscimento vocale. Riprova.');
+                isListening = false;
+                document.getElementById('voiceCommandButton').classList.remove('listening');
+            };
+        }
+
+        function toggleVoiceCommand() {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function showVoiceFeedback(message) {
+            const feedback = document.getElementById('voiceFeedback');
+            const feedbackText = document.getElementById('voiceFeedbackText');
+            feedbackText.textContent = message;
+            feedback.classList.add('show');
+        }
+
+        function hideVoiceFeedback() {
+            const feedback = document.getElementById('voiceFeedback');
+            feedback.classList.remove('show');
+        }
+
+        // Inizializza il riconoscimento vocale quando la pagina è caricata
+        document.addEventListener('DOMContentLoaded', initSpeechRecognition);
+    </script>
 </body>
 </html> 
