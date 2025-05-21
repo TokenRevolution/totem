@@ -58,9 +58,21 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "firebase/app";
-        import { getDatabase, ref, query, orderByChild, onValue } from "firebase/database";
-        import { firebaseConfig } from './js/firebase-admin.js';
+        // Import Firebase modules directly from CDN
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, query, orderByChild, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
+            authDomain: "gestione-totem.firebaseapp.com",
+            databaseURL: "https://gestione-totem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gestione-totem",
+            storageBucket: "gestione-totem.firebasestorage.app",
+            messagingSenderId: "940742220177",
+            appId: "1:940742220177:web:ec36d4958f6f02a948a230",
+            measurementId: "G-Y4WT9HRDSY"
+        };
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -91,23 +103,55 @@
         // Function to get week dates
         function getWeekDates(weekInput) {
             const [year, week] = weekInput.split('-W');
-            const date = new Date(year, 0, 1 + (week - 1) * 7);
+            
+            // Calcola il primo giorno dell'anno
+            const firstDayOfYear = new Date(year, 0, 1);
+            
+            // Ottieni il giorno della settimana (0 = domenica, 1 = lunedì, ..., 6 = sabato)
+            let dayOfWeek = firstDayOfYear.getDay();
+            // Converti in formato ISO (1 = lunedì, 7 = domenica)
+            dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+            
+            // Calcola il primo lunedì dell'anno
+            // Se il primo giorno è lunedì (1), non serve offset
+            // Altrimenti, calcola quanti giorni mancano al lunedì successivo
+            const daysUntilMonday = dayOfWeek === 1 ? 0 : 8 - dayOfWeek;
+            const firstMonday = new Date(year, 0, 1 + daysUntilMonday);
+            
+            // Calcola la data del lunedì della settimana richiesta
+            const targetMonday = new Date(firstMonday);
+            targetMonday.setDate(firstMonday.getDate() + (week - 1) * 7);
+            
+            // Genera le date della settimana
             const dates = [];
             for (let i = 0; i < 7; i++) {
-                const currentDate = new Date(date);
-                currentDate.setDate(date.getDate() + i);
+                const currentDate = new Date(targetMonday);
+                currentDate.setDate(targetMonday.getDate() + i);
                 dates.push(currentDate.toISOString().split('T')[0]);
             }
+            
             return dates;
         }
 
         // Function to get current week number
         function getCurrentWeek() {
             const now = new Date();
-            const start = new Date(now.getFullYear(), 0, 1);
-            const diff = now - start;
+            const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
+            
+            // Ottieni il giorno della settimana (0 = domenica, 1 = lunedì, ..., 6 = sabato)
+            let dayOfWeek = firstDayOfYear.getDay();
+            // Converti in formato ISO (1 = lunedì, 7 = domenica)
+            dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+            
+            // Calcola il primo lunedì dell'anno
+            const daysUntilMonday = dayOfWeek === 1 ? 0 : 8 - dayOfWeek;
+            const firstMonday = new Date(now.getFullYear(), 0, 1 + daysUntilMonday);
+            
+            // Calcola la differenza in giorni tra oggi e il primo lunedì
+            const diff = now - firstMonday;
             const oneWeek = 7 * 24 * 60 * 60 * 1000;
             const week = Math.ceil(diff / oneWeek);
+            
             return `${now.getFullYear()}-W${week.toString().padStart(2, '0')}`;
         }
 
