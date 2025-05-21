@@ -151,9 +151,9 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .voice-command-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        .voice-command-button.active {
+            background: #4CAF50;
+            color: white;
         }
 
         .voice-command-button.listening {
@@ -186,6 +186,20 @@
             gap: 10px;
             z-index: 1000;
             backdrop-filter: blur(10px);
+            max-width: 80%;
+            text-align: center;
+        }
+
+        .voice-feedback.wake-word {
+            background: rgba(76, 175, 80, 0.9);
+        }
+
+        .voice-feedback.command {
+            background: rgba(33, 150, 243, 0.9);
+        }
+
+        .voice-feedback.error {
+            background: rgba(244, 67, 54, 0.9);
         }
 
         .voice-feedback.show {
@@ -223,9 +237,9 @@
             <div class="logo-container">
                 <img src="https://www.istitutoboselli.edu.it/wp-content/uploads/2024/04/logo-boselli-ritaglio-1.png" alt="Logo IIS P.Boselli" class="school-logo">
             </div>
-            <button id="voiceCommandButton" class="voice-command-button" onclick="toggleVoiceCommand()">
+            <button id="voiceCommandButton" class="voice-command-button" onclick="toggleVoiceAssistant()">
                 <i class="fas fa-microphone"></i>
-                <span>Comando Vocale</span>
+                <span id="voiceStatus">Assistente Vocale</span>
             </button>
             <h1>IIS P.Boselli</h1>
             <div class="subtitle">Seleziona la sezione desiderata</div>
@@ -401,80 +415,222 @@
             'amministrazione': 'admin.html'
         };
 
+        // Wake words
+        const wakeWords = ['caronte'];
+
         let recognition = null;
         let isListening = false;
+        let isAssistantActive = false;
+        let wakeWordDetected = false;
+        let commandTimeout = null;
+        let isWaitingForCommand = false;
+        let recognitionRestartTimeout = null;
 
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window)) {
-                showVoiceFeedback('Il riconoscimento vocale non è supportato dal tuo browser');
+                console.error('Il riconoscimento vocale non è supportato dal tuo browser');
                 return;
             }
 
             recognition = new webkitSpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
+            recognition.continuous = true;
+            recognition.interimResults = true;
             recognition.lang = 'it-IT';
 
             recognition.onstart = () => {
                 isListening = true;
-                document.getElementById('voiceCommandButton').classList.add('listening');
-                showVoiceFeedback('Ti sto ascoltando...');
+                updateVoiceButton();
             };
 
             recognition.onend = () => {
                 isListening = false;
-                document.getElementById('voiceCommandButton').classList.remove('listening');
-                hideVoiceFeedback();
+                updateVoiceButton();
+                
+                if (isAssistantActive && !isWaitingForCommand) {
+                    if (recognitionRestartTimeout) {
+                        clearTimeout(recognitionRestartTimeout);
+                    }
+                    recognitionRestartTimeout = setTimeout(() => {
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            if (e.name !== 'InvalidStateError') {
+                                console.warn('Errore nel riavvio del riconoscimento:', e.message);
+                            }
+                        }
+                    }, 100);
+                }
             };
 
             recognition.onresult = (event) => {
-                const command = event.results[0][0].transcript.toLowerCase().trim();
-                showVoiceFeedback(`Comando riconosciuto: ${command}`);
-                
-                // Cerca il comando nella mappa
-                for (const [key, url] of Object.entries(voiceCommands)) {
-                    if (command.includes(key)) {
-                        setTimeout(() => {
-                            window.location.href = url;
-                        }, 1000);
-                        return;
+                const transcript = Array.from(event.results)
+                    .map(result => result[0].transcript.toLowerCase())
+                    .join(' ');
+
+                if (!wakeWordDetected && !isWaitingForCommand) {
+                    for (const wakeWord of wakeWords) {
+                        if (transcript.includes(wakeWord)) {
+                            wakeWordDetected = true;
+                            isWaitingForCommand = true;
+                            showVoiceFeedback('Sì, come posso aiutarti?', 'wake-word');
+                            
+                            commandTimeout = setTimeout(() => {
+                                wakeWordDetected = false;
+                                isWaitingForCommand = false;
+                                console.log('Timeout: nessun comando ricevuto dopo la wake word');
+                            }, 8000);
+                            return;
+                        }
+                    }
+                } 
+                else if (isWaitingForCommand) {
+                    if (transcript.trim().length > 0) {
+                        clearTimeout(commandTimeout);
+                        wakeWordDetected = false;
+                        isWaitingForCommand = false;
+
+                        let commandFound = false;
+                        for (const [key, url] of Object.entries(voiceCommands)) {
+                            if (transcript.includes(key)) {
+                                commandFound = true;
+                                showVoiceFeedback(`Apro ${key}...`, 'command');
+                                setTimeout(() => {
+                                    window.location.href = url;
+                                }, 1000);
+                                break;
+                            }
+                        }
+
+                        if (!commandFound) {
+                            console.log('Comando non riconosciuto:', transcript);
+                        }
                     }
                 }
-                
-                // Se il comando non è riconosciuto
-                showVoiceFeedback('Comando non riconosciuto. Prova con: Montecuccoli, Sansovino, Luini, Sostituzioni, Calendario, Admin');
             };
 
             recognition.onerror = (event) => {
-                console.error('Errore nel riconoscimento vocale:', event.error);
-                showVoiceFeedback('Errore nel riconoscimento vocale. Riprova.');
+                // Ignora gli errori non critici
+                if (event.error === 'no-speech' || 
+                    event.error === 'audio-capture' || 
+                    event.error === 'network') {
+                    return;
+                }
+
+                // Log degli errori critici solo in console
+                if (event.error === 'aborted' || 
+                    event.error === 'not-allowed' || 
+                    event.error === 'service-not-allowed') {
+                    console.error('Errore nel riconoscimento vocale:', event.error);
+                }
+                
+                if (isWaitingForCommand) {
+                    clearTimeout(commandTimeout);
+                    wakeWordDetected = false;
+                    isWaitingForCommand = false;
+                }
+                
                 isListening = false;
-                document.getElementById('voiceCommandButton').classList.remove('listening');
+                updateVoiceButton();
+                
+                if (isAssistantActive && 
+                    (event.error === 'aborted' || 
+                     event.error === 'not-allowed' || 
+                     event.error === 'service-not-allowed')) {
+                    if (recognitionRestartTimeout) {
+                        clearTimeout(recognitionRestartTimeout);
+                    }
+                    recognitionRestartTimeout = setTimeout(() => {
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            if (e.name !== 'InvalidStateError') {
+                                console.warn('Errore nel riavvio del riconoscimento:', e.message);
+                            }
+                        }
+                    }, 1000);
+                }
             };
         }
 
-        function toggleVoiceCommand() {
+        function toggleVoiceAssistant() {
             if (!recognition) {
                 initSpeechRecognition();
             }
 
-            if (isListening) {
-                recognition.stop();
+            isAssistantActive = !isAssistantActive;
+            
+            if (isAssistantActive) {
+                wakeWordDetected = false;
+                isWaitingForCommand = false;
+                clearTimeout(commandTimeout);
+                clearTimeout(recognitionRestartTimeout);
+                
+                try {
+                    recognition.start();
+                    showVoiceFeedback('Assistente vocale attivo. Chiamami dicendo "Caronte"', 'wake-word');
+                } catch (e) {
+                    if (e.name !== 'InvalidStateError') {
+                        console.warn('Errore nell\'avvio del riconoscimento:', e.message);
+                    }
+                }
             } else {
-                recognition.start();
+                try {
+                    recognition.stop();
+                    console.log('Assistente vocale disattivato');
+                } catch (e) {
+                    if (e.name !== 'InvalidStateError') {
+                        console.warn('Errore nell\'arresto del riconoscimento:', e.message);
+                    }
+                }
+                
+                wakeWordDetected = false;
+                isWaitingForCommand = false;
+                clearTimeout(commandTimeout);
+                clearTimeout(recognitionRestartTimeout);
+            }
+            
+            updateVoiceButton();
+        }
+
+        function updateVoiceButton() {
+            const button = document.getElementById('voiceCommandButton');
+            const status = document.getElementById('voiceStatus');
+            
+            button.classList.remove('active', 'listening');
+            if (isAssistantActive) {
+                button.classList.add('active');
+                status.textContent = 'Assistente Attivo';
+                if (wakeWordDetected) {
+                    button.classList.add('listening');
+                    status.textContent = 'Ti sto ascoltando...';
+                }
+            } else {
+                status.textContent = 'Assistente Vocale';
             }
         }
 
-        function showVoiceFeedback(message) {
+        function showVoiceFeedback(message, type = '') {
             const feedback = document.getElementById('voiceFeedback');
             const feedbackText = document.getElementById('voiceFeedbackText');
+            
+            // Mostra il feedback solo per i messaggi di successo o di attesa
+            if (type === 'error') {
+                console.warn('Assistente vocale:', message);
+                return;
+            }
+            
+            feedback.className = 'voice-feedback';
+            if (type) {
+                feedback.classList.add(type);
+            }
+            
             feedbackText.textContent = message;
             feedback.classList.add('show');
-        }
-
-        function hideVoiceFeedback() {
-            const feedback = document.getElementById('voiceFeedback');
-            feedback.classList.remove('show');
+            
+            // Nascondi il feedback dopo 3 secondi
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 3000);
         }
 
         // Inizializza il riconoscimento vocale quando la pagina è caricata
