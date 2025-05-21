@@ -119,12 +119,17 @@
             <div class="admin-section glass-effect">
                 <h2><i class="fas fa-sitemap"></i> Gestione Organigramma</h2>
                 <div class="admin-controls">
-                    <button onclick="editOrgStructure()" class="admin-button-small">
-                        <i class="fas fa-edit"></i> Modifica Struttura
-                    </button>
-                    <button onclick="updateOrgStructure()" class="admin-button-small">
-                        <i class="fas fa-save"></i> Aggiorna Struttura
-                    </button>
+                    <div class="action-buttons">
+                        <button onclick="addOrgNode()" class="admin-button-small">
+                            <i class="fas fa-plus"></i> Aggiungi Nodo
+                        </button>
+                        <button onclick="saveOrgStructure()" class="admin-button-small">
+                            <i class="fas fa-save"></i> Salva Struttura
+                        </button>
+                    </div>
+                </div>
+                <div id="orgStructureEditor" class="org-structure-editor">
+                    <div id="orgTree" class="org-tree"></div>
                 </div>
             </div>
         </div>
@@ -260,6 +265,43 @@
                     <div class="form-actions">
                         <button type="submit" class="save-button">Salva</button>
                         <button type="button" onclick="closeCarouselItemModal()" class="cancel-button">Annulla</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Org Node Modal -->
+        <div id="orgNodeModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Gestione Nodo Organigramma</h2>
+                    <button onclick="closeOrgNodeModal()" class="close-button">&times;</button>
+                </div>
+                <form id="orgNodeForm" onsubmit="handleOrgNodeSubmit(event)">
+                    <input type="hidden" id="nodeId">
+                    <div class="form-group">
+                        <label for="parentId">Genitore:</label>
+                        <select id="parentId"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeTitle">Titolo:</label>
+                        <input type="text" id="nodeTitle" required placeholder="es. Dirigente Scolastico">
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeName">Nome:</label>
+                        <input type="text" id="nodeName" required placeholder="es. Mario Rossi">
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeRole">Ruolo:</label>
+                        <input type="text" id="nodeRole" required placeholder="es. Responsabile">
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeDescription">Descrizione:</label>
+                        <textarea id="nodeDescription" rows="3" placeholder="Breve descrizione del ruolo e delle responsabilità"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="save-button">Salva</button>
+                        <button type="button" onclick="closeOrgNodeModal()" class="cancel-button">Annulla</button>
                     </div>
                 </form>
             </div>
@@ -790,53 +832,392 @@
         });
 
         // Organizational structure functions
-        window.editOrgStructure = async () => {
+        async function populateParentSelect(currentNodeId = null) {
+            const parentSelect = document.getElementById('parentId');
+            parentSelect.innerHTML = '<option value="">(Nessun genitore - nodo radice)</option>';
             try {
-                const structure = await getOrgStructure();
-                if (structure) {
-                    // Implement structure editing interface
-                    showInfo('Funzionalità in sviluppo');
+                const snapshot = await db.ref('orgStructure').once('value');
+                snapshot.forEach(childSnapshot => {
+                    const node = childSnapshot.val();
+                    const nodeId = childSnapshot.key;
+                    if (nodeId !== currentNodeId) {
+                        const option = document.createElement('option');
+                        option.value = nodeId;
+                        option.textContent = node.title + (node.name ? ' - ' + node.name : '');
+                        parentSelect.appendChild(option);
+                    }
+                });
+            } catch (e) {
+                // fallback: solo opzione radice
+            }
+        }
+
+        window.addOrgNode = async (parentId = null) => {
+            const modal = document.getElementById('orgNodeModal');
+            document.getElementById('nodeId').value = '';
+            await populateParentSelect();
+            document.getElementById('parentId').value = parentId || '';
+            document.getElementById('nodeTitle').value = '';
+            document.getElementById('nodeName').value = '';
+            document.getElementById('nodeRole').value = '';
+            document.getElementById('nodeDescription').value = '';
+            modal.style.display = 'block';
+        };
+
+        window.editOrgNode = (nodeId) => {
+            const nodeRef = db.ref(`orgStructure/${nodeId}`);
+            nodeRef.once('value').then(async (snapshot) => {
+                if (snapshot.exists()) {
+                    const node = snapshot.val();
+                    const modal = document.getElementById('orgNodeModal');
+                    document.getElementById('nodeId').value = nodeId;
+                    await populateParentSelect(nodeId);
+                    document.getElementById('parentId').value = node.parentId || '';
+                    document.getElementById('nodeTitle').value = node.title || '';
+                    document.getElementById('nodeName').value = node.name || '';
+                    document.getElementById('nodeRole').value = node.role || '';
+                    document.getElementById('nodeDescription').value = node.description || '';
+                    modal.style.display = 'block';
                 }
+            });
+        };
+
+        window.closeOrgNodeModal = () => {
+            document.getElementById('orgNodeModal').style.display = 'none';
+        };
+
+        window.handleOrgNodeSubmit = async (event) => {
+            event.preventDefault();
+            
+            const nodeId = document.getElementById('nodeId').value;
+            const nodeData = {
+                parentId: document.getElementById('parentId').value || null,
+                title: document.getElementById('nodeTitle').value,
+                name: document.getElementById('nodeName').value,
+                role: document.getElementById('nodeRole').value,
+                description: document.getElementById('nodeDescription').value,
+                updatedAt: new Date().toISOString()
+            };
+
+            try {
+                if (nodeId) {
+                    await db.ref(`orgStructure/${nodeId}`).update(nodeData);
+                } else {
+                    await db.ref('orgStructure').push(nodeData);
+                }
+                closeOrgNodeModal();
+                loadOrgStructure();
+                showSuccess('Nodo salvato con successo');
+            } catch (error) {
+                console.error('Error saving org node:', error);
+                showError('Errore durante il salvataggio del nodo');
+            }
+        };
+
+        window.deleteOrgNode = async (nodeId) => {
+            if (confirm('Sei sicuro di voler eliminare questo nodo? Verranno eliminati anche tutti i nodi figli.')) {
+                try {
+                    // Prima elimina tutti i nodi figli
+                    const deleteChildren = async (parentId) => {
+                        const snapshot = await db.ref('orgStructure').orderByChild('parentId').equalTo(parentId).once('value');
+                        const promises = [];
+                        snapshot.forEach((childSnapshot) => {
+                            promises.push(deleteChildren(childSnapshot.key));
+                            promises.push(db.ref(`orgStructure/${childSnapshot.key}`).remove());
+                        });
+                        await Promise.all(promises);
+                    };
+
+                    await deleteChildren(nodeId);
+                    await db.ref(`orgStructure/${nodeId}`).remove();
+                    loadOrgStructure();
+                    showSuccess('Nodo eliminato con successo');
+                } catch (error) {
+                    console.error('Error deleting org node:', error);
+                    showError('Errore durante l\'eliminazione del nodo');
+                }
+            }
+        };
+
+        window.loadOrgStructure = async () => {
+            const orgTree = document.getElementById('orgTree');
+            orgTree.innerHTML = '';
+
+            try {
+                const snapshot = await db.ref('orgStructure').once('value');
+                if (!snapshot.exists()) {
+                    orgTree.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-sitemap"></i>
+                            <p>Nessun nodo presente nell'organigramma</p>
+                            <button onclick="addOrgNode()" class="admin-button-small">
+                                <i class="fas fa-plus"></i> Aggiungi Primo Nodo
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Converti i dati in una struttura ad albero
+                const nodes = [];
+                const nodeMap = new Map();
+
+                snapshot.forEach((childSnapshot) => {
+                    const node = childSnapshot.val();
+                    node.id = childSnapshot.key;
+                    nodes.push(node);
+                    nodeMap.set(node.id, node);
+                });
+
+                // Organizza i nodi in una struttura ad albero
+                const rootNodes = nodes.filter(node => !node.parentId);
+                const buildTree = (parentNode) => {
+                    const children = nodes.filter(node => node.parentId === parentNode.id);
+                    return {
+                        ...parentNode,
+                        children: children.map(child => buildTree(child))
+                    };
+                };
+
+                const tree = rootNodes.map(node => buildTree(node));
+
+                // Funzione per renderizzare l'albero
+                const renderNode = (node, level = 0) => {
+                    const nodeElement = document.createElement('div');
+                    nodeElement.className = 'org-node';
+                    
+                    const nodeContent = document.createElement('div');
+                    nodeContent.className = 'org-node-content';
+                    nodeContent.innerHTML = `
+                        <div class="org-node-header">
+                            <h3>${node.title}</h3>
+                            <div class="org-node-actions">
+                                <button onclick="addOrgNode('${node.id}')" class="edit-button" title="Aggiungi figlio">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button onclick="editOrgNode('${node.id}')" class="edit-button" title="Modifica">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteOrgNode('${node.id}')" class="delete-button" title="Elimina">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="org-node-details">
+                            <p class="name">${node.name}</p>
+                            <p class="role">${node.role}</p>
+                            ${node.description ? `<p class="description">${node.description}</p>` : ''}
+                        </div>
+                    `;
+                    nodeElement.appendChild(nodeContent);
+
+                    if (node.children && node.children.length > 0) {
+                        const childrenContainer = document.createElement('div');
+                        childrenContainer.className = 'org-node-children';
+                        
+                        // Aggiungi la linea di collegamento verticale
+                        const verticalLine = document.createElement('div');
+                        verticalLine.className = 'vertical-line';
+                        childrenContainer.appendChild(verticalLine);
+
+                        // Aggiungi i nodi figli
+                        node.children.forEach((child, index) => {
+                            const childNode = renderNode(child, level + 1);
+                            
+                            // Aggiungi la linea orizzontale tra i nodi fratelli
+                            if (index < node.children.length - 1) {
+                                const horizontalLine = document.createElement('div');
+                                horizontalLine.className = 'horizontal-line';
+                                childrenContainer.appendChild(horizontalLine);
+                            }
+                            
+                            childrenContainer.appendChild(childNode);
+                        });
+                        
+                        nodeElement.appendChild(childrenContainer);
+                    }
+
+                    return nodeElement;
+                };
+
+                // Aggiungi gli stili CSS per l'organigramma
+                const orgStyles = document.createElement('style');
+                orgStyles.textContent = `
+                    .org-structure-editor {
+                        padding: 2rem;
+                        background: rgba(255, 255, 255, 0.05);
+                        border-radius: 8px;
+                        min-height: 200px;
+                        overflow: auto;
+                    }
+
+                    .org-tree {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        padding: 2rem 0;
+                    }
+
+                    .org-node {
+                        position: relative;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        margin: 1rem 0;
+                    }
+
+                    .org-node-content {
+                        background: rgba(255, 255, 255, 0.1);
+                        border-radius: 8px;
+                        padding: 1.5rem;
+                        min-width: 250px;
+                        position: relative;
+                        z-index: 2;
+                        transition: transform 0.2s ease, box-shadow 0.2s ease;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .org-node-content:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+                        background: rgba(255, 255, 255, 0.15);
+                    }
+
+                    .org-node-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 1rem;
+                    }
+
+                    .org-node-header h3 {
+                        margin: 0;
+                        color: var(--primary-color);
+                        font-size: 1.2rem;
+                    }
+
+                    .org-node-actions {
+                        display: flex;
+                        gap: 0.5rem;
+                    }
+
+                    .org-node-details {
+                        text-align: left;
+                    }
+
+                    .org-node-details .name {
+                        font-weight: 600;
+                        margin: 0.5rem 0;
+                        font-size: 1.1rem;
+                    }
+
+                    .org-node-details .role {
+                        color: var(--primary-color);
+                        margin: 0.5rem 0;
+                        font-weight: 500;
+                    }
+
+                    .org-node-details .description {
+                        color: rgba(255, 255, 255, 0.7);
+                        margin: 0.5rem 0;
+                        font-size: 0.9rem;
+                        line-height: 1.4;
+                    }
+
+                    .org-node-children {
+                        display: flex;
+                        justify-content: center;
+                        position: relative;
+                        margin-top: 2rem;
+                        padding-top: 2rem;
+                        min-width: 100%;
+                    }
+
+                    .vertical-line {
+                        position: absolute;
+                        top: 0;
+                        left: 50%;
+                        width: 2px;
+                        height: 2rem;
+                        background: rgba(255, 255, 255, 0.2);
+                        transform: translateX(-50%);
+                    }
+
+                    .horizontal-line {
+                        position: absolute;
+                        top: -2rem;
+                        width: 100%;
+                        height: 2px;
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+
+                    .org-node-children .org-node {
+                        position: relative;
+                        margin: 0 2rem;
+                    }
+
+                    .org-node-children .org-node:not(:last-child)::after {
+                        content: '';
+                        position: absolute;
+                        top: -2rem;
+                        right: -2rem;
+                        width: 4rem;
+                        height: 2px;
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+
+                    @media screen and (max-width: 768px) {
+                        .org-structure-editor {
+                            padding: 1rem;
+                        }
+
+                        .org-node-content {
+                            min-width: 200px;
+                            padding: 1rem;
+                        }
+
+                        .org-node-children {
+                            flex-direction: column;
+                            align-items: center;
+                        }
+
+                        .org-node-children .org-node {
+                            margin: 1rem 0;
+                        }
+
+                        .org-node-children .org-node:not(:last-child)::after {
+                            display: none;
+                        }
+
+                        .horizontal-line {
+                            display: none;
+                        }
+                    }
+                `;
+                document.head.appendChild(orgStyles);
+
+                // Renderizza l'albero
+                tree.forEach(node => {
+                    orgTree.appendChild(renderNode(node));
+                });
+
             } catch (error) {
                 console.error('Error loading org structure:', error);
-                showError('Errore nel caricamento della struttura');
+                orgTree.innerHTML = `
+                    <div class="no-data error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Errore nel caricamento dell'organigramma</p>
+                    </div>
+                `;
             }
         };
 
-        window.updateOrgStructure = async () => {
-            try {
-                // Implement structure update interface
-                showInfo('Funzionalità in sviluppo');
-            } catch (error) {
-                console.error('Error updating org structure:', error);
-                showError('Errore nell\'aggiornamento della struttura');
+        // Carica l'organigramma quando il pannello admin è mostrato
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                loadOrgStructure();
             }
-        };
-
-        // Utility functions
-        function downloadJSON(data, filename) {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function showSuccess(message) {
-            alert(message); // Replace with better UI
-        }
-
-        function showError(message) {
-            alert(message); // Replace with better UI
-        }
-
-        function showInfo(message) {
-            alert(message); // Replace with better UI
-        }
+        });
 
         // Calendar Event Functions
         window.addCalendarEvent = () => {

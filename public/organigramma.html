@@ -6,6 +6,11 @@
     <title>Organigramma - Totem</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color-rgb: 0, 123, 255;  /* This should match your primary color */
+        }
+    </style>
 </head>
 <body>
     <div class="container glass-effect">
@@ -24,29 +29,9 @@
         
         <!-- Content Section -->
         <div class="content glass-effect">
-            <h2>Organigramma</h2>
-            <p>
-                Questa sezione è dedicata alla visualizzazione dell'organigramma dell'istituto. Qui puoi trovare informazioni sulla struttura organizzativa e sui ruoli all'interno della scuola.
-            </p>
-            <h3>Struttura Organizzativa</h3>
-            <ul>
-                <li>Dirigente Scolastico: Responsabile della gestione e dell'amministrazione dell'istituto.</li>
-                <li>Vice Dirigente: Supporta il dirigente nelle attività quotidiane.</li>
-                <li>Docenti: Insegnanti responsabili delle classi e delle materie.</li>
-                <li>Personale Amministrativo: Gestisce le attività amministrative e di segreteria.</li>
-                <li>Personale Tecnico: Fornisce supporto tecnico per le attività didattiche e di laboratorio.</li>
-            </ul>
-            <h3>Ruoli e Responsabilità</h3>
-            <p>
-                Ogni ruolo all'interno dell'organigramma ha responsabilità specifiche:
-            </p>
-            <ul>
-                <li>Il Dirigente Scolastico è responsabile delle decisioni strategiche e della gestione complessiva.</li>
-                <li>I Docenti sono responsabili della didattica e della formazione degli studenti.</li>
-                <li>Il Personale Amministrativo gestisce le risorse e le attività di segreteria.</li>
-                <li>Il Personale Tecnico supporta le attività di laboratorio e le infrastrutture tecnologiche.</li>
-            </ul>
-            <!-- Add more content as needed -->
+            <div class="org-structure-viewer">
+                <div id="orgTree" class="org-tree"></div>
+            </div>
         </div>
 
         <footer class="footer glass-effect">
@@ -54,5 +39,307 @@
             <p class="footer-sub">Progetto sviluppato presso l'Istituto di Istruzione Superiore Paolo Boselli di Torino</p>
         </footer>
     </div>
+
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <!-- Firebase Database -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY79WtkjTgPkY8GqbtZGbawL-PQXjgdHA",
+            authDomain: "gestione-totem.firebaseapp.com",
+            databaseURL: "https://gestione-totem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gestione-totem",
+            storageBucket: "gestione-totem.firebasestorage.app",
+            messagingSenderId: "940742220177",
+            appId: "1:940742220177:web:ec36d4958f6f02a948a230",
+            measurementId: "G-Y4WT9HRDSY"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Funzione per caricare e visualizzare l'organigramma
+        async function loadOrgStructure() {
+            const orgTree = document.getElementById('orgTree');
+            orgTree.innerHTML = '';
+
+            try {
+                const snapshot = await db.ref('orgStructure').once('value');
+                if (!snapshot.exists()) {
+                    orgTree.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-sitemap"></i>
+                            <p>Organigramma non disponibile</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Converti i dati in una struttura ad albero
+                const nodes = [];
+                const nodeMap = new Map();
+
+                snapshot.forEach((childSnapshot) => {
+                    const node = childSnapshot.val();
+                    node.id = childSnapshot.key;
+                    nodes.push(node);
+                    nodeMap.set(node.id, node);
+                });
+
+                // Organizza i nodi in una struttura ad albero
+                const rootNodes = nodes.filter(node => !node.parentId);
+                const buildTree = (parentNode) => {
+                    const children = nodes.filter(node => node.parentId === parentNode.id);
+                    return {
+                        ...parentNode,
+                        children: children.map(child => buildTree(child))
+                    };
+                };
+
+                const tree = rootNodes.map(node => buildTree(node));
+
+                // Funzione per renderizzare l'albero
+                const renderNode = (node, level = 0) => {
+                    const nodeElement = document.createElement('div');
+                    nodeElement.className = 'org-node';
+                    
+                    nodeElement.innerHTML = `
+                        <div class="org-node-content">
+                            <div class="org-node-header">
+                                <h3>${node.title}</h3>
+                            </div>
+                            <div class="org-node-details">
+                                <p class="name">${node.name}</p>
+                                <p class="role">${node.role}</p>
+                                ${node.description ? `<p class="description">${node.description}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    if (node.children && node.children.length > 0) {
+                        const childrenContainer = document.createElement('div');
+                        childrenContainer.className = 'org-node-children';
+                        node.children.forEach(child => {
+                            childrenContainer.appendChild(renderNode(child, level + 1));
+                        });
+                        nodeElement.appendChild(childrenContainer);
+                    }
+
+                    return nodeElement;
+                };
+
+                tree.forEach(node => {
+                    orgTree.appendChild(renderNode(node));
+                });
+
+            } catch (error) {
+                console.error('Error loading org structure:', error);
+                orgTree.innerHTML = `
+                    <div class="no-data error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Errore nel caricamento dell'organigramma</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Carica l'organigramma quando la pagina è pronta
+        document.addEventListener('DOMContentLoaded', loadOrgStructure);
+
+        // Aggiungi stili CSS per l'organigramma
+        const orgStyles = document.createElement('style');
+        orgStyles.textContent = `
+            .org-structure-viewer {
+                padding: 2rem;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+                min-height: 200px;
+                overflow: auto;
+            }
+
+            .org-tree {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 2rem 0;
+            }
+
+            .org-node {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 1rem 0;
+            }
+
+            .org-node-content {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                padding: 1.5rem;
+                min-width: 250px;
+                position: relative;
+                z-index: 2;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+
+            .org-node-content:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+                background: rgba(255, 255, 255, 0.15);
+            }
+
+            .org-node-header {
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+
+            .org-node-header h3 {
+                margin: 0;
+                color: var(--primary-color);
+                font-size: 1.2rem;
+            }
+
+            .org-node-details {
+                text-align: center;
+            }
+
+            .org-node-details .name {
+                font-weight: 600;
+                margin: 0.5rem 0;
+                font-size: 1.1rem;
+            }
+
+            .org-node-details .role {
+                color: var(--primary-color);
+                margin: 0.5rem 0;
+                font-weight: 500;
+            }
+
+            .org-node-details .description {
+                color: rgba(255, 255, 255, 0.7);
+                margin: 0.5rem 0;
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+
+            .org-node-children {
+                display: flex;
+                justify-content: center;
+                position: relative;
+                margin-top: 2rem;
+                padding-top: 2rem;
+                min-width: 100%;
+                gap: 2rem;
+            }
+
+            /* Enhanced connecting lines */
+            .org-node-children::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 50%;
+                width: 2px;
+                height: 2rem;
+                background: rgba(var(--primary-color-rgb), 0.3);
+                transform: translateX(-50%);
+            }
+
+            .org-node-children .org-node {
+                position: relative;
+                margin: 0 1rem;
+            }
+
+            .org-node-children .org-node::before {
+                content: '';
+                position: absolute;
+                top: -2rem;
+                left: 50%;
+                width: 2px;
+                height: 2rem;
+                background: rgba(var(--primary-color-rgb), 0.3);
+                transform: translateX(-50%);
+            }
+
+            .org-node-children .org-node:not(:last-child)::after {
+                content: '';
+                position: absolute;
+                top: -2rem;
+                right: -2rem;
+                width: 4rem;
+                height: 2px;
+                background: rgba(var(--primary-color-rgb), 0.3);
+            }
+
+            /* Horizontal line for multiple children */
+            .org-node-children::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: calc(25% + 1rem);
+                right: calc(25% + 1rem);
+                height: 2px;
+                background: rgba(var(--primary-color-rgb), 0.3);
+            }
+
+            /* Responsive design */
+            @media screen and (max-width: 768px) {
+                .org-structure-viewer {
+                    padding: 1rem;
+                }
+
+                .org-node-content {
+                    min-width: 200px;
+                    padding: 1rem;
+                }
+
+                .org-node-children {
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1rem;
+                }
+
+                .org-node-children .org-node {
+                    margin: 1rem 0;
+                }
+
+                .org-node-children .org-node:not(:last-child)::after {
+                    display: none;
+                }
+
+                .org-node-children::after {
+                    display: none;
+                }
+            }
+
+            /* No data message styles */
+            .no-data {
+                text-align: center;
+                padding: 3rem;
+                color: var(--text-color);
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+            }
+
+            .no-data i {
+                font-size: 3rem;
+                color: var(--primary-color);
+                margin-bottom: 1rem;
+            }
+
+            .no-data.error {
+                color: #ff6b6b;
+            }
+
+            .no-data.error i {
+                color: #ff6b6b;
+            }
+        `;
+        document.head.appendChild(orgStyles);
+    </script>
 </body>
 </html> 
