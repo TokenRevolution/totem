@@ -122,10 +122,10 @@
                     <div class="action-buttons">
                         <button onclick="addOrgNode()" class="admin-button-small">
                             <i class="fas fa-plus"></i> Aggiungi Nodo
-                        </button>
+                    </button>
                         <button onclick="saveOrgStructure()" class="admin-button-small">
                             <i class="fas fa-save"></i> Salva Struttura
-                        </button>
+                    </button>
                     </div>
                 </div>
                 <div id="orgStructureEditor" class="org-structure-editor">
@@ -158,35 +158,35 @@
                     <div id="substitutionsContainer">
                         <div class="substitution-entry">
                             <div class="substitution-row">
-                                <div class="form-group">
+                    <div class="form-group">
                                     <label for="substitutionTimeSlot_0">Orario:</label>
                                     <select id="substitutionTimeSlot_0" required>
-                                        <option value="1">1° ora (8:00-9:00)</option>
-                                        <option value="2">2° ora (9:00-10:00)</option>
-                                        <option value="3">3° ora (10:00-11:00)</option>
-                                        <option value="4">4° ora (11:00-12:00)</option>
-                                        <option value="5">5° ora (12:00-13:00)</option>
-                                        <option value="6">6° ora (13:00-14:00)</option>
+                            <option value="1">1° ora (8:00-9:00)</option>
+                            <option value="2">2° ora (9:00-10:00)</option>
+                            <option value="3">3° ora (10:00-11:00)</option>
+                            <option value="4">4° ora (11:00-12:00)</option>
+                            <option value="5">5° ora (12:00-13:00)</option>
+                            <option value="6">6° ora (13:00-14:00)</option>
                                         <option value="7">7° ora (14:00-15:00)</option>
                                         <option value="8">8° ora (15:00-16:00)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
+                        </select>
+                    </div>
+                    <div class="form-group">
                                     <label for="substitutionClass_0">Classe:</label>
                                     <input type="text" id="substitutionClass_0" required placeholder="es. 1A">
-                                </div>
-                                <div class="form-group">
+                    </div>
+                    <div class="form-group">
                                     <label for="replacedTeacher_0">Docente Sostituito:</label>
                                     <input type="text" id="replacedTeacher_0" required>
-                                </div>
-                                <div class="form-group">
+                    </div>
+                    <div class="form-group">
                                     <label for="substituteTeacher_0">Docente Sostituto:</label>
                                     <input type="text" id="substituteTeacher_0" required>
-                                </div>
+                    </div>
                                 <button type="button" class="remove-substitution" onclick="removeSubstitutionEntry(this)" style="display: none;">
                                     <i class="fas fa-times"></i>
                                 </button>
-                            </div>
+                    </div>
                         </div>
                     </div>
 
@@ -364,6 +364,44 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
+
+        // Utility Functions
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function showError(message) {
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'error-message';
+            errorMessage.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                <p>${message}</p>
+            `;
+            document.body.appendChild(errorMessage);
+            setTimeout(() => {
+                errorMessage.style.animation = 'slideOut 0.3s ease-out forwards';
+                setTimeout(() => errorMessage.remove(), 300);
+            }, 3000);
+        }
+
+        function showSuccess(message) {
+            const successMessage = document.createElement('div');
+            successMessage.className = 'success-message';
+            successMessage.innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <p>${message}</p>
+            `;
+            document.body.appendChild(successMessage);
+            setTimeout(() => {
+                successMessage.style.animation = 'slideOut 0.3s ease-out forwards';
+                setTimeout(() => successMessage.remove(), 300);
+            }, 3000);
+        }
 
         // Check authentication state
         auth.onAuthStateChanged((user) => {
@@ -728,7 +766,7 @@
 
         // Funzione per chiudere il modal delle sostituzioni
         window.closeSubstitutionModal = function() {
-            const modal = document.getElementById('substitutionModal');
+                    const modal = document.getElementById('substitutionModal');
             modal.style.display = 'none';
             modal.classList.remove('active');
             // Rimuovi eventuale stato di modifica
@@ -758,7 +796,7 @@
                     class: class_,
                     replacedTeacher,
                     substituteTeacher,
-                    updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString()
                 });
             }
 
@@ -1060,7 +1098,7 @@
                     await db.ref(`orgStructure/${nodeId}`).remove();
                     loadOrgStructure();
                     showSuccess('Nodo eliminato con successo');
-                } catch (error) {
+            } catch (error) {
                     console.error('Error deleting org node:', error);
                     showError('Errore durante l\'eliminazione del nodo');
                 }
